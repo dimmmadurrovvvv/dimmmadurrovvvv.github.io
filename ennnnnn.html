@@ -305,7 +305,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const remainingTime = endTime - Date.now();
             if (remainingTime < 0) {
                 clearInterval(interval);
-                display.textContent = 'Получить сигнал';
+                display.textContent = 'Get a signal';
                 getSignalButton.disabled = false;
                 decreaseButton.disabled = false;
                 increaseButton.disabled = false;
