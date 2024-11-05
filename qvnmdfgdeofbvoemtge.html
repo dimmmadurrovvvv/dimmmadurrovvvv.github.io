@@ -231,7 +231,7 @@ document.addEventListener('DOMContentLoaded', () => {
             cell.style.backgroundImage = '';
         });
 
-        const crossPositions = [6, 9, 16];
+        const crossPositions = [6, 9, 22];
 
         if (trapCount === 3) {
             // Назначаем классы крестиков и явным образом меняем background-image
@@ -343,7 +343,7 @@ document.addEventListener('DOMContentLoaded', () => {
         increaseButton.classList.add('disabled');
         randomizeGrid();
 
-        // Меняем длительность таймера на 5 секунд для тестирования
+
         const duration = 60;  // Можно поменять на любое другое время
         const endTime = Date.now() + duration * 1000;
         localStorage.setItem('endTime', endTime);
