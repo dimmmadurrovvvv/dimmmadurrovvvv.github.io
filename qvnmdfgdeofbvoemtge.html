@@ -225,13 +225,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const cells = document.querySelectorAll('.cell');
         const totalCells = 25;
 
-        // Сброс всех классов и изображений
+
         cells.forEach(cell => {
             cell.classList.remove('hidden', 'cross', 'star');
             cell.style.backgroundImage = '';
         });
 
-        const crossPositions = [12, 15, 24];
+        const crossPositions = [9, 22, 24];
 
         if (trapCount === 3) {
             // Назначаем классы крестиков и явным образом меняем background-image
@@ -275,7 +275,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 cells[index].style.transform = 'scale(0)'; // Уменьшаем квадрат
                 setTimeout(() => {
                     cells[index].classList.add('cross');
-                    cells[index].style.backgroundImage = 'url("cross.svg")';
+                    cells[index].style.backgroundImage = 'url("cross.svg")'; 
                     cells[index].style.transform = 'scale(1)'; // Возвращаем квадрат
                     cells[index].style.opacity = '1'; // Показываем снова
                 }, 500); // Появление через 500 мс
