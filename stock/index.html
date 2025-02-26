@@ -1,0 +1,1176 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <title>График подписчиков (Bybit-Style)</title>
+
+  <style>
+    /* Сброс базовых отступов и box-sizing */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      background-color: #131722; /* темный фон */
+      color: #ECECEC;
+      font-family: Arial, sans-serif;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* Общий контейнер: desktop-версия (вверхняя панель + контент) */
+    .container {
+      display: flex;
+      flex: 1;
+      flex-direction: row;
+      width: 100%;
+    }
+
+    /* Левая панель (скрываем на мобилке) */
+    .left-panel {
+      width: 60px;
+      background-color: #1d1e22;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      border-right: 1px solid #2c2c2e;
+    }
+    .left-panel .logo {
+      margin: 20px 0;
+      width: 32px;
+      height: 32px;
+      background-color: #ff9900; /* псевдо-лого */
+      border-radius: 4px;
+    }
+    .left-panel .menu-item {
+      width: 32px;
+      height: 32px;
+      margin: 10px 0;
+      background-color: #2c2c2e;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    /* Центральная часть: верхняя панель + график */
+    .main-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    .top-bar {
+      height: 50px;
+      border-bottom: 1px solid #2c2c2e;
+      display: flex;
+      align-items: center;
+      padding: 0 15px;
+    }
+    .top-bar .market-pair {
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    /* Контейнер под график */
+    .chart-container {
+      flex: 1;
+      position: relative;
+      background-color: #1d1e22;
+      /* Отключаем горизонтальный скролл на мобильном, чтобы график влезал */
+      overflow-x: auto;
+      overflow-y: hidden;
+    }
+    .chart-layout {
+      position: relative;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Ось Y */
+    .y-axis {
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 50px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: flex-end;
+      padding-right: 4px;
+      pointer-events: none;
+    }
+    .y-axis .label {
+      color: #888;
+      font-size: 12px;
+    }
+
+    /* SVG для свечей */
+    #chart {
+      position: absolute;
+      top: 0;
+      left: 50px; /* отступ под ось Y */
+      right: 0;
+      bottom: 0;
+    }
+
+    /* Правая панель (скрываем на мобилке) */
+    .right-panel {
+      width: 300px;
+      background-color: #1d1e22;
+      border-left: 1px solid #2c2c2e;
+      display: flex;
+      flex-direction: column;
+    }
+    .order-book {
+      flex: 1;
+      padding: 10px;
+      border-bottom: 1px solid #2c2c2e;
+    }
+    .order-book h3 {
+      margin-bottom: 10px;
+      font-size: 16px;
+      color: #fff;
+    }
+    .orders {
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    .order-buy {
+      color: #00b15d;
+    }
+    .order-sell {
+      color: #fe3462;
+    }
+
+    /* Панель трейда */
+    .trade-panel {
+      padding: 10px;
+    }
+    .trade-panel h3 {
+      font-size: 16px;
+      margin-bottom: 10px;
+      color: #fff;
+    }
+    .buttons {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap; /* Чтобы кнопки лучше умещались */
+    }
+    button {
+      flex: 1;
+      cursor: pointer;
+      border: none;
+      padding: 12px 0;
+      font-size: 16px;
+      font-weight: bold;
+      border-radius: 4px;
+      transition: background-color 0.3s;
+    }
+    /* Кнопка Buy */
+    #buyBtn {
+      background-color: #00b15d;
+      color: #fff;
+    }
+    #buyBtn:hover {
+      background-color: #05a250;
+    }
+    /* Кнопка Sell */
+    #sellBtn {
+      background-color: #fe3462;
+      color: #fff;
+    }
+    #sellBtn:hover {
+      background-color: #e52d57;
+    }
+    /* Серые кнопки */
+    #nextBtn,
+    #randBtn,
+    #randBig,
+    #randMinus,
+    #randPluse,
+    #increaseBtn,
+    #decreaseBtn,
+    #autoUpdateBtn {
+      background-color: #888;
+      color: #fff;
+    }
+    #nextBtn:hover,
+    #randBtn:hover,
+    #randBig:hover,
+    #randMinus:hover,
+    #randPluse:hover,
+    #increaseBtn:hover,
+    #decreaseBtn:hover,
+    #autoUpdateBtn:hover {
+      background-color: #666;
+    }
+
+    /* Нижняя панель, имитирующая навбар мобильных приложений */
+    .bottom-nav {
+      display: none; /* Показываем только на мобилке ниже в медиазапросе */
+      background-color: #1d1e22;
+      border-top: 1px solid #2c2c2e;
+      height: 60px;
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+    }
+    .bottom-nav .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      color: #888;
+      font-size: 12px;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    .bottom-nav .nav-item .icon {
+      width: 24px;
+      height: 24px;
+      background-color: #2c2c2e; /* вместо иконки */
+      border-radius: 4px;
+      margin-bottom: 4px;
+    }
+    .bottom-nav .nav-item.active {
+      color: #fff;
+    }
+    .bottom-nav .nav-item.active .icon {
+      background-color: #ff9900;
+    }
+
+    /* === Мобильная адаптация === */
+    @media (max-width: 768px) {
+      /* Делаем контейнер одной колонкой */
+      .container {
+        flex-direction: column;
+      }
+      /* Прячем левую панель */
+      .left-panel {
+        display: none;
+      }
+      /* Прячем правую панель (order-book и т.д.), если нужно */
+      .right-panel {
+        display: none;
+      }
+      /* График на всю ширину */
+      .main-content {
+        width: 100%;
+      }
+      /* Делаем чуть выше top-bar, чтобы всё вместилось */
+      .top-bar {
+        height: 60px;
+        padding: 0 10px;
+      }
+      .top-bar .market-pair {
+        font-size: 16px;
+      }
+
+      /* Кнопки управления сделаем крупнее и расположим внизу —
+         Можно целиком перенести .trade-panel вниз. */
+      .trade-panel {
+        display: flex;
+        flex-direction: column;
+        padding: 10px;
+      }
+      .trade-panel .buttons button {
+        font-size: 14px;
+        padding: 10px 0;
+      }
+
+      /* Навбар для мобильных */
+      .bottom-nav {
+        display: flex;
+      }
+
+      /* Уменьшим высоту под график (чтобы уместилось под кнопками) */
+      .chart-container {
+        height: calc(100vh - 60px - 160px); /* top-bar и trade-panel (примерно) */
+      }
+    }
+
+  </style>
+</head>
+
+<body>
+  <!-- Верхняя шапка (на мобильном остаётся) -->
+  <div class="top-bar">
+    <div class="market-pair">CITY/USDT</div>
+    <div id="dailyGrowth" style="margin-left: 20px;">+0.00</div>
+    <div id="maxValueLabel" style="margin-left: auto;">Макс.: $0</div>
+  </div>
+
+  <!-- Основной контейнер (desktop) -->
+  <div class="container">
+    <!-- Левая панель (скрывается на мобильном) -->
+    <div class="left-panel">
+      <div class="logo"></div>
+      <div class="menu-item"></div>
+      <div class="menu-item"></div>
+      <div class="menu-item"></div>
+    </div>
+
+    <!-- Центральная часть -->
+    <div class="main-content">
+      <!-- График -->
+      <div class="chart-container">
+        <div class="chart-layout">
+          <!-- Ось Y -->
+          <div class="y-axis" id="yAxis"></div>
+          <!-- SVG под свечной график -->
+          <svg id="chart"></svg>
+        </div>
+      </div>
+
+      <!-- Панель трейда (перенесли вниз, чтобы смотрелось как в мобильном приложении) -->
+      <div class="trade-panel">
+        <h3>Trade Panel</h3>
+        <!-- Баланс -->
+        <div style="margin-bottom: 8px;">
+          Баланс: <span id="balanceLabel">9500.00</span>
+        </div>
+
+        <!-- Информация о ставке -->
+        <div id="betInfo" style="margin-bottom: 8px;">
+          <div>Вход: $0.00</div>
+          <div>Ликв: $0.00</div>
+          <div>Take Profit: $0.00</div>
+        </div>
+
+        <!-- Поле ввода ставки -->
+        <input type="number" id="betAmount"
+               placeholder="Ставка" min="1"
+               style="width: 100%; margin-bottom: 10px;" />
+
+        <!-- Кнопки Buy / Sell / След -->
+        <div class="buttons" style="margin-bottom: 10px;">
+          <button id="buyBtn">Buy</button>
+          <button id="sellBtn">Sell</button>
+          <button id="nextBtn">След</button>
+        </div>
+
+        <!-- Кнопки Rand, Minus, Pluse, Big -->
+        <div class="buttons" style="margin-bottom: 10px;">
+          <button id="randBtn">Rand</button>
+          <button id="randMinus">Minus</button>
+          <button id="randPluse">Pluse</button>
+          <button id="randBig">Big</button>
+        </div>
+
+        <!-- Кнопки + / - / Auto (S) -->
+        <div class="buttons" style="margin-bottom: 10px;">
+          <button id="increaseBtn">+</button>
+          <button id="decreaseBtn">-</button>
+          <button id="autoUpdateBtn">S</button>
+        </div>
+
+        <!-- Текущая цена -->
+        <div>
+          Текущая цена: <span id="currentValueLabel">$0.00</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Правая панель (скрывается на мобильном) -->
+    <div class="right-panel">
+      <div class="order-book">
+        <h3>Order Book</h3>
+        <div class="orders">
+          <div class="order-sell">Пример: 100 @ 1.2345</div>
+          <div class="order-sell">Пример: 150 @ 1.2400</div>
+          <div class="order-buy">Пример: 80 @ 1.2200</div>
+          <div class="order-buy">Пример: 200 @ 1.2100</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Нижняя панель навигации (имитирует мобильное приложение) -->
+  <!--  <div class="bottom-nav">
+    <div class="nav-item active">
+      <div class="icon"></div>
+      <div>Home</div>
+    </div>
+    <div class="nav-item">
+      <div class="icon"></div>
+      <div>Markets</div>
+    </div>
+    <div class="nav-item">
+      <div class="icon"></div>
+      <div>Trade</div>
+    </div>
+    <div class="nav-item">
+      <div class="icon"></div>
+      <div>Earn</div>
+    </div>
+    <div class="nav-item">
+      <div class="icon"></div>
+      <div>Assets</div>
+    </div>
+  </div> -->
+
+  <!-- Скрипт со всей логикой графика и ставок -->
+  <script>
+  // Обновлённые исходные данные с OHLC для японских свечей
+  const initialData = [
+  { time: "00:00", open: 4, high: 5, low: 2, close: 3 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+{ time: "01:00", open: 0, high: 0, low: 0, close: 0 },
+  ];
+
+  let chartData = initialData.map(d => ({ ...d, lastChange: null }));
+  let selectedIndex = null;
+
+  let balance = 9500.00;
+  let isBetActive = false;
+  let betAmount = 0;
+  let entryPrice = 0;
+  let liquidationPrice = 0;
+  let takeProfitPrice = 0;
+
+  const svg = document.getElementById("chart");
+  const yAxis = document.getElementById("yAxis");
+  const chartLayout = document.querySelector('.chart-layout');
+  const chartContainer = document.querySelector('.chart-container');
+
+  const marginBottom = 30;
+  const marginTop = 20;
+
+  function updateBalanceDisplay() {
+    const formattedBalance = balance
+      .toLocaleString('ru-RU', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+    document.getElementById('balanceLabel').textContent = formattedBalance;
+  }
+
+  function getMaxValue() {
+    return Math.max(...chartData.map(d => d.high));
+  }
+
+  function getDailyGrowth() {
+    return chartData.reduce((sum, d) => sum + d.close, 0);
+  }
+
+  function drawChart(chartData, maxValue) {
+    const layoutHeight = chartLayout.clientHeight;
+    const chartHeight = layoutHeight - marginBottom - marginTop;
+    const candleWidth = 12;
+    const gap = 4;
+    const totalCandles = chartData.length;
+    const totalWidth = totalCandles * (candleWidth + gap) - gap;
+    const viewWidth = Math.max(totalWidth + 100, chartContainer.clientWidth);
+
+    svg.setAttribute('width', viewWidth);
+    svg.setAttribute('height', layoutHeight);
+
+    while (svg.firstChild) {
+      svg.removeChild(svg.firstChild);
+    }
+
+    const svgHeight = layoutHeight;
+    const xAxisY = svgHeight - marginBottom;
+
+    function getY(value) {
+      if (maxValue === 0) return xAxisY;
+      return xAxisY - (value / maxValue) * chartHeight;
+    }
+
+    // Ось X (пунктир)
+    const xAxis = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    xAxis.setAttribute("x1", 0);
+    xAxis.setAttribute("y1", xAxisY);
+    xAxis.setAttribute("x2", viewWidth);
+    xAxis.setAttribute("y2", xAxisY);
+    xAxis.setAttribute("stroke", "#555");
+    xAxis.setAttribute("stroke-dasharray", "2,2");
+    svg.appendChild(xAxis);
+
+    const startX = 0;
+
+    // Свечи
+    chartData.forEach((d, i) => {
+      const x = startX + i * (candleWidth + gap);
+      const isBullish = d.close >= d.open;
+      const color = isBullish ? "#00b15d" : "#fe3462";
+
+      const highY = getY(d.high);
+      const lowY = getY(d.low);
+      const openY = getY(d.open);
+      const closeY = getY(d.close);
+
+      // Фитиль
+      const wick = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      wick.setAttribute("x1", x + candleWidth / 2);
+      wick.setAttribute("x2", x + candleWidth / 2);
+      wick.setAttribute("y1", highY);
+      wick.setAttribute("y2", lowY);
+      wick.setAttribute("stroke", color);
+      wick.setAttribute("stroke-width", "1");
+      svg.appendChild(wick);
+
+      // Тело
+      const bodyY = Math.min(openY, closeY);
+      const bodyHeight = Math.max(Math.abs(closeY - openY), 1);
+      const body = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+      body.setAttribute("x", x);
+      body.setAttribute("y", bodyY);
+      body.setAttribute("width", candleWidth);
+      body.setAttribute("height", bodyHeight);
+      body.setAttribute("fill", color);
+
+      body.addEventListener('click', () => {
+        selectedIndex = i;
+        updateChart();
+      });
+
+      svg.appendChild(body);
+    });
+
+    // Линия ликвидации
+    if (isBetActive && liquidationPrice > 0) {
+      const liquidationY = getY(liquidationPrice);
+      const liquidationLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      liquidationLine.setAttribute("x1", 0);
+      liquidationLine.setAttribute("y1", liquidationY);
+      liquidationLine.setAttribute("x2", viewWidth);
+      liquidationLine.setAttribute("y2", liquidationY);
+      liquidationLine.setAttribute("stroke", "#E3A838");
+      liquidationLine.setAttribute("stroke-dasharray", "5,5");
+      liquidationLine.setAttribute("stroke-width", "2");
+      svg.appendChild(liquidationLine);
+    }
+  }
+
+  function drawYAxis(maxValue) {
+    while (yAxis.firstChild) {
+      yAxis.removeChild(yAxis.firstChild);
+    }
+    const steps = 5;
+    for (let i = steps; i >= 0; i--) {
+      const stepValue = (maxValue / steps) * i;
+      const label = document.createElement("div");
+      label.className = "label";
+      label.textContent = Math.round(stepValue).toString();
+      yAxis.appendChild(label);
+    }
+  }
+
+  function drawCurrentLine() {
+    if (selectedIndex == null || selectedIndex < 0 || selectedIndex >= chartData.length) return;
+    const existingLine = document.getElementById('currentPriceLine');
+    if (existingLine) {
+      svg.removeChild(existingLine);
+    }
+    const currentCandle = chartData[selectedIndex];
+    const color = (currentCandle.close >= currentCandle.open) ? "#00b15d" : "#fe3462";
+
+    const layoutHeight = chartLayout.clientHeight;
+    const chartHeight = layoutHeight - marginBottom - marginTop;
+    const maxValue = getMaxValue();
+    const lineY = maxValue === 0
+      ? (layoutHeight - marginBottom)
+      : (layoutHeight - marginBottom - (currentCandle.close / maxValue) * chartHeight);
+
+    const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    line.setAttribute("id", "currentPriceLine");
+    line.setAttribute("x1", 0);
+    line.setAttribute("y1", lineY);
+    line.setAttribute("x2", svg.getAttribute("width"));
+    line.setAttribute("y2", lineY);
+    line.setAttribute("stroke", color);
+    line.setAttribute("stroke-width", "2");
+    line.setAttribute("stroke-dasharray", "5,5");
+    svg.appendChild(line);
+  }
+
+  function updateMetrics() {
+    const maxValue = getMaxValue();
+    const dailyGrowthValue = getDailyGrowth();
+    document.getElementById('dailyGrowth').textContent = "+" + dailyGrowthValue.toFixed(2);
+    document.getElementById('maxValueLabel').textContent = "Макс.: $" + maxValue;
+
+    if (selectedIndex !== null && selectedIndex >= 0 && selectedIndex < chartData.length) {
+      document.getElementById('currentValueLabel').textContent =
+        `$${chartData[selectedIndex].close.toFixed(2)}`;
+    } else {
+      document.getElementById('currentValueLabel').textContent = "$0.00";
+    }
+  }
+
+  function updateChart() {
+    const maxValue = getMaxValue();
+    // Проверяем ликвидацию / takeProfit
+    if (isBetActive && selectedIndex !== null) {
+      const currentClose = chartData[selectedIndex].close;
+      if (currentClose <= liquidationPrice) {
+        alert(`Курс упал ниже ликвидации (${liquidationPrice.toFixed(2)}). Вы потеряли ставку $${betAmount.toFixed(2)}`);
+        balance -= betAmount;
+        isBetActive = false;
+        resetBetInfo();
+        updateBalanceDisplay();
+      } else if (currentClose >= takeProfitPrice) {
+        const profit = betAmount * 2.8;
+        balance += betAmount + profit;
+        alert(`Курс достиг Take Profit! +$${profit.toFixed(2)}`);
+        isBetActive = false;
+        resetBetInfo();
+        updateBalanceDisplay();
+      }
+    }
+
+    drawChart(chartData, maxValue);
+    drawYAxis(maxValue);
+    updateMetrics();
+    drawCurrentLine();
+  }
+
+  function resetBetInfo() {
+    document.getElementById('betInfo').innerHTML = `
+      <div>Вход: $0.00</div>
+      <div>Ликв: $0.00</div>
+      <div>Take Profit: $0.00</div>
+    `;
+    isBetActive = false;
+    betAmount = 0;
+    entryPrice = 0;
+    liquidationPrice = 0;
+    takeProfitPrice = 0;
+  }
+
+  function placeBet() {
+    const betInput = document.getElementById('betAmount');
+    const amount = parseFloat(betInput.value);
+    if (isNaN(amount) || amount <= 0) {
+      alert('Введите корректную сумму ставки.');
+      return;
+    }
+    if (amount > balance) {
+      alert('Недостаточно средств.');
+      return;
+    }
+    if (isBetActive) {
+      alert('У вас уже есть активная ставка.');
+      return;
+    }
+    if (selectedIndex === null || selectedIndex < 0 || selectedIndex >= chartData.length) {
+      alert('Выберите свечу для ставки, кликнув по ней.');
+      return;
+    }
+    const currentClose = chartData[selectedIndex].close;
+    if (currentClose === 0) {
+      alert('Нельзя ставить на курс 0.');
+      return;
+    }
+    balance -= amount;
+    updateBalanceDisplay();
+
+    entryPrice = currentClose;
+    liquidationPrice = entryPrice * 0.8;
+    takeProfitPrice = entryPrice * 1.35;
+    betAmount = amount;
+    isBetActive = true;
+
+    document.getElementById('betInfo').innerHTML = `
+      <div>Вход: $${entryPrice.toFixed(2)}</div>
+      <div>Ликв: $${liquidationPrice.toFixed(2)}</div>
+      <div>Take Profit: $${takeProfitPrice.toFixed(2)}</div>
+    `;
+    betInput.value = '';
+    updateMetrics();
+  }
+
+  function takeBet() {
+    if (!isBetActive) {
+      alert('У вас нет активной ставки.');
+      return;
+    }
+    if (selectedIndex === null) {
+      alert('Сначала выберите свечу.');
+      return;
+    }
+
+    const currentClose = chartData[selectedIndex].close;
+    let profit = 0;
+
+    if (currentClose >= takeProfitPrice) {
+      profit = betAmount * 0.2;
+      balance += betAmount + profit;
+      alert(`Ставка закрыта с прибылью: +$${profit.toFixed(2)}`);
+    } else if (currentClose <= liquidationPrice) {
+      alert(`Ставка закрыта с убытком: -$${betAmount.toFixed(2)}`);
+    } else {
+      const delta = (currentClose - entryPrice) / entryPrice;
+      profit = delta * betAmount;
+      balance += betAmount + profit;
+      alert(`Ставка закрыта: ${profit >= 0 ? '+' : ''}$${profit.toFixed(2)}`);
+    }
+
+    isBetActive = false;
+    resetBetInfo();
+    updateBalanceDisplay();
+    updateChart();
+  }
+
+  let autoUpdateInterval = null;
+  let autoUpdateCount = 0;
+  const maxAutoUpdates = 10;
+
+  function startAutoUpdate() {
+    if (autoUpdateInterval) {
+      clearInterval(autoUpdateInterval);
+      autoUpdateInterval = null;
+      autoUpdateCount = 0;
+    }
+    autoUpdateCount = 0;
+    autoUpdateInterval = setInterval(() => {
+      if (autoUpdateCount >= maxAutoUpdates || selectedIndex === null) {
+        clearInterval(autoUpdateInterval);
+        autoUpdateInterval = null;
+        return;
+      }
+      const randomChange = Math.random() < 0.5 ? -1.5 : 3.5;
+      let newClose = Math.max(0, chartData[selectedIndex].close + randomChange);
+      chartData[selectedIndex].close = newClose;
+      chartData[selectedIndex].high = Math.max(chartData[selectedIndex].high, newClose);
+      chartData[selectedIndex].low = Math.min(chartData[selectedIndex].low, newClose);
+      chartData[selectedIndex].lastChange = randomChange > 0 ? 'increase' : 'decrease';
+      autoUpdateCount++;
+      updateChart();
+    }, 1500);
+  }
+
+  updateBalanceDisplay();
+  updateChart();
+
+  document.getElementById('buyBtn').addEventListener('click', placeBet);
+  document.getElementById('sellBtn').addEventListener('click', takeBet);
+  document.getElementById('nextBtn').addEventListener('click', () => {
+    if (autoUpdateInterval) {
+      clearInterval(autoUpdateInterval);
+      autoUpdateInterval = null;
+      alert('Автообновление отключено.');
+    }
+    if (selectedIndex === null) {
+      alert('Сначала выберите свечу.');
+      return;
+    }
+    if (selectedIndex >= chartData.length - 1) {
+      alert('Достигнута последняя свеча.');
+      return;
+    }
+    selectedIndex += 1;
+    if (chartData[selectedIndex]) {
+      const prev = chartData[selectedIndex - 1];
+      chartData[selectedIndex] = {
+        time: chartData[selectedIndex].time,
+        open: prev.close,
+        high: prev.close,
+        low: prev.close,
+        close: prev.close,
+        lastChange: null
+      };
+    }
+    updateChart();
+  });
+  document.getElementById('autoUpdateBtn').addEventListener('click', () => {
+    if (autoUpdateInterval) {
+      clearInterval(autoUpdateInterval);
+      autoUpdateInterval = null;
+      alert('Автообновление остановлено.');
+    } else {
+      startAutoUpdate();
+      alert('Автообновление запущено на 10 итераций.');
+    }
+  });
+  document.getElementById('increaseBtn').addEventListener('click', () => {
+    if (selectedIndex !== null && selectedIndex >= 0 && selectedIndex < chartData.length) {
+      chartData[selectedIndex].close += 0.1;
+      chartData[selectedIndex].high = Math.max(chartData[selectedIndex].high, chartData[selectedIndex].close);
+      chartData[selectedIndex].lastChange = 'increase';
+      updateChart();
+    }
+  });
+  document.getElementById('decreaseBtn').addEventListener('click', () => {
+    if (selectedIndex !== null && selectedIndex >= 0 && selectedIndex < chartData.length) {
+      chartData[selectedIndex].close = Math.max(0, parseFloat((chartData[selectedIndex].close - 0.2).toFixed(2)));
+      chartData[selectedIndex].low = Math.min(chartData[selectedIndex].low, chartData[selectedIndex].close);
+      chartData[selectedIndex].lastChange = 'decrease';
+      updateChart();
+    }
+  });
+  document.getElementById('randBtn').addEventListener('click', () => {
+    if (selectedIndex !== null && selectedIndex >= 0 && selectedIndex < chartData.length) {
+      const randomChange = Math.random() < 0.5 ? -1.5 : 1.5;
+      let newClose = Math.max(0, chartData[selectedIndex].close + randomChange);
+      chartData[selectedIndex].close = newClose;
+      chartData[selectedIndex].high = Math.max(chartData[selectedIndex].high, newClose);
+      chartData[selectedIndex].low = Math.min(chartData[selectedIndex].low, newClose);
+      chartData[selectedIndex].lastChange = randomChange > 0 ? 'increase' : 'decrease';
+      updateChart();
+    } else {
+      alert('Выберите свечу перед использованием Rand.');
+    }
+  });
+  document.getElementById('randBig').addEventListener('click', () => {
+    if (selectedIndex !== null && selectedIndex >= 0 && selectedIndex < chartData.length) {
+      const randomChange = Math.random() < 0.5 ? -70 : 70;
+      let newClose = Math.max(0, chartData[selectedIndex].close + randomChange);
+      chartData[selectedIndex].close = newClose;
+      chartData[selectedIndex].high = Math.max(chartData[selectedIndex].high, newClose);
+      chartData[selectedIndex].low = Math.min(chartData[selectedIndex].low, newClose);
+      chartData[selectedIndex].lastChange = randomChange > 0 ? 'increase' : 'decrease';
+      updateChart();
+    } else {
+      alert('Выберите свечу перед использованием Rand.');
+    }
+  });
+  document.getElementById('randMinus').addEventListener('click', () => {
+    if (selectedIndex !== null && selectedIndex >= 0 && selectedIndex < chartData.length) {
+      let newClose = Math.max(0, chartData[selectedIndex].close - 5);
+      chartData[selectedIndex].close = newClose;
+      chartData[selectedIndex].low = Math.min(chartData[selectedIndex].low, newClose);
+      chartData[selectedIndex].lastChange = 'decrease';
+      updateChart();
+    }
+  });
+  document.getElementById('randPluse').addEventListener('click', () => {
+    if (selectedIndex !== null && selectedIndex >= 0 && selectedIndex < chartData.length) {
+      let newClose = chartData[selectedIndex].close + 8;
+      chartData[selectedIndex].close = newClose;
+      chartData[selectedIndex].high = Math.max(chartData[selectedIndex].high, newClose);
+      chartData[selectedIndex].lastChange = 'increase';
+      updateChart();
+    }
+  });
+  </script>
+</body>
+</html>
