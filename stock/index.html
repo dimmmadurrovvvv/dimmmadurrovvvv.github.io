@@ -363,11 +363,9 @@
 
 
         <!-- Кнопки Buy / Sell / След -->
-        <!--  <div class="buttons" style="margin-bottom: 10px;">
-          <button id="buyBtn">Buy</button>
-          <button id="sellBtn">Sell</button>
+          <div class="buttons" style="margin-bottom: 10px;">
           <button id="nextBtn">След</button>
-        </div>  -->
+        </div>
 
         <!-- Кнопки Rand, Minus, Pluse, Big -->
         <div class="buttons" style="margin-bottom: 10px;">
@@ -1088,8 +1086,6 @@
   updateBalanceDisplay();
   updateChart();
 
-  document.getElementById('buyBtn').addEventListener('click', placeBet);
-  document.getElementById('sellBtn').addEventListener('click', takeBet);
   document.getElementById('nextBtn').addEventListener('click', () => {
     if (autoUpdateInterval) {
       clearInterval(autoUpdateInterval);
