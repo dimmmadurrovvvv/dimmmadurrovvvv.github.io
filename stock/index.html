@@ -326,7 +326,48 @@
       </div>
 
       <!-- Панель трейда (перенесли вниз, чтобы смотрелось как в мобильном приложении) -->
+      <div class="trade-panel">
+        <h3>Trade Panel</h3>
+        <!-- Баланс -->
+        <div style="margin-bottom: 8px;">
+          Баланс: <span id="balanceLabel">9500.00</span>
+        </div>
 
+        <!-- Информация о ставке -->
+        <div id="betInfo" style="margin-bottom: 8px;">
+
+        </div>
+
+        <!-- Поле ввода ставки -->
+
+
+        <!-- Кнопки Buy / Sell / След -->
+        <!--  <div class="buttons" style="margin-bottom: 10px;">
+          <button id="buyBtn">Buy</button>
+          <button id="sellBtn">Sell</button>
+          <button id="nextBtn">След</button>
+        </div>  -->
+
+        <!-- Кнопки Rand, Minus, Pluse, Big -->
+        <div class="buttons" style="margin-bottom: 10px;">
+          <button id="randBtn">Rand</button>
+          <button id="randMinus">Minus</button>
+          <button id="randPluse">Pluse</button>
+          <button id="randBig">Big</button>
+        </div>
+
+        <!-- Кнопки + / - / Auto (S) -->
+        <div class="buttons" style="margin-bottom: 10px;">
+          <button id="increaseBtn">+</button>
+          <button id="decreaseBtn">-</button>
+          <button id="autoUpdateBtn">S</button>
+        </div>
+
+        <!-- Текущая цена -->
+        <div>
+          Текущая цена: <span id="currentValueLabel">$0.00</span>
+        </div>
+      </div>
     </div>
 
     <!-- Правая панель (скрывается на мобильном) -->
