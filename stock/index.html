@@ -350,9 +350,6 @@
       <div class="trade-panel">
         <h3>Trade Panel</h3>
         <!-- Баланс -->
-        <div style="margin-bottom: 8px;">
-          Баланс: <span id="balanceLabel"></span>
-        </div>
 
         <!-- Информация о ставке -->
         <div id="betInfo" style="margin-bottom: 8px;">
@@ -363,8 +360,8 @@
 
 
         <div class="buttons" style="margin-bottom: 10px;">
-          <button id="increaseBtn">+</button>
-          <button id="decreaseBtn">-</button>
+          <button id="increaseBtn" style="font-size: 20px;">Pl</button>
+          <button id="decreaseBtn" style="font-size: 20px;">Mn</button>
           <button id="autoUpdateBtn">S</button>
         </div>
         
@@ -784,7 +781,6 @@
         minimumFractionDigits: 2,
         maximumFractionDigits: 2
       });
-    document.getElementById('balanceLabel').textContent = formattedBalance;
   }
 
   function getMaxValue() {
