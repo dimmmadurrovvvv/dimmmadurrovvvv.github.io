@@ -13,24 +13,38 @@
       padding: 0;
       box-sizing: border-box;
     }
-    body {
+    html, body {
+      margin: 0;
+      padding: 0;
       background-color: #131722; /* темный фон */
       color: #ECECEC;
       font-family: Arial, sans-serif;
-      height: 100vh;
+      /* Вместо жёсткого height: 100vh:
+         позволяем странице "расти" и не обрезаться снизу */
+      min-height: 100vh;
+      /* Уберём overflow: hidden, чтобы на iPhone не обрезались элементы снизу */
+      /* overflow: hidden; */
+    
+      /* Делаем flex-контейнер, как раньше */
       display: flex;
       flex-direction: column;
-      overflow: hidden;
     }
-
-    /* Общий контейнер: desktop-версия (вверхняя панель + контент) */
+    
+    /* Поддержка safe-area-inset на iPhone (чтобы кнопки не попадали за Home Indicator) */
+    @supports (padding: env(safe-area-inset-bottom)) {
+      body {
+        padding-bottom: env(safe-area-inset-bottom);
+      }
+    }
+    
+    /* Общий контейнер: desktop-версия (верхняя панель + контент) */
     .container {
       display: flex;
       flex: 1;
       flex-direction: row;
       width: 100%;
     }
-
+    
     /* Левая панель (скрываем на мобилке) */
     .left-panel {
       width: 60px;
@@ -55,7 +69,7 @@
       border-radius: 4px;
       cursor: pointer;
     }
-
+    
     /* Центральная часть: верхняя панель + график */
     .main-content {
       flex: 1;
@@ -73,22 +87,23 @@
       font-size: 18px;
       font-weight: bold;
     }
-
+    
     /* Контейнер под график */
     .chart-container {
       flex: 1;
       position: relative;
       background-color: #1d1e22;
-      /* Отключаем горизонтальный скролл на мобильном, чтобы график влезал */
+      /* Оставим overflow-x: auto, чтобы помещалось */
       overflow-x: auto;
-      overflow-y: hidden;
+      /* Заменим overflow-y: hidden на auto, чтобы iPhone мог скроллить */
+      overflow-y: auto;
     }
     .chart-layout {
       position: relative;
       width: 100%;
       height: 100%;
     }
-
+    
     /* Ось Y */
     .y-axis {
       position: absolute;
@@ -107,7 +122,7 @@
       color: #888;
       font-size: 12px;
     }
-
+    
     /* SVG для свечей */
     #chart {
       position: absolute;
@@ -116,7 +131,7 @@
       right: 0;
       bottom: 0;
     }
-
+    
     /* Правая панель (скрываем на мобилке) */
     .right-panel {
       width: 300px;
@@ -145,10 +160,15 @@
     .order-sell {
       color: #fe3462;
     }
-
+    
     /* Панель трейда */
     .trade-panel {
       padding: 10px;
+      /* Если нужно, чтобы панель была поверх графика (на случай перекрытия),
+         добавляем позиционирование и z-index:
+         position: relative;
+         z-index: 10;
+      */
     }
     .trade-panel h3 {
       font-size: 16px;
@@ -208,7 +228,7 @@
     #autoUpdateBtn:hover {
       background-color: #666;
     }
-
+    
     /* Нижняя панель, имитирующая навбар мобильных приложений */
     .bottom-nav {
       display: none; /* Показываем только на мобилке ниже в медиазапросе */
@@ -241,7 +261,7 @@
     .bottom-nav .nav-item.active .icon {
       background-color: #ff9900;
     }
-
+    
     /* === Мобильная адаптация === */
     @media (max-width: 768px) {
       /* Делаем контейнер одной колонкой */
@@ -268,7 +288,7 @@
       .top-bar .market-pair {
         font-size: 16px;
       }
-
+    
       /* Кнопки управления сделаем крупнее и расположим внизу —
          Можно целиком перенести .trade-panel вниз. */
       .trade-panel {
@@ -280,19 +300,19 @@
         font-size: 14px;
         padding: 10px 0;
       }
-
+    
       /* Навбар для мобильных */
       .bottom-nav {
         display: flex;
       }
-
+    
       /* Уменьшим высоту под график (чтобы уместилось под кнопками) */
       .chart-container {
         height: calc(100vh - 60px - 160px); /* top-bar и trade-panel (примерно) */
       }
     }
-
-  </style>
+    </style>
+    
 </head>
 
 <body>
