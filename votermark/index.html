@@ -84,8 +84,8 @@
 
     /* Обёртка для canvas */
     #canvasWrapper {
-      display: none;           /* Изначально скрыт, появится после загрузки */
-      opacity: 0;             /* Чтобы анимация fade-in была заметна */
+      display: none;  /* Изначально скрыт, появится после загрузки */
+      opacity: 0;     /* Чтобы анимация fade-in была заметна */
       position: relative;
       width: 100%;
       max-width: 100%;
@@ -170,218 +170,266 @@
 </head>
 <body>
 
-  <div class="container">
-    <!-- Лого (svg) -->
-    <img class="logo" src="./logo.svg" alt="Logo">
+<div class="container">
+  <!-- Лого (svg) -->
+  <img class="logo" src="./logo.svg" alt="Logo">
 
-    <!-- Поле для загрузки -->
-    <div class="upload-box" id="uploadBox">
-      <!-- Иконка загрузки (svg) -->
-      <svg class="upload-icon" viewBox="0 0 24 24">
-        <path d="M12 3v12m0 0l-4-4m4 4 4-4M4 17h16" stroke="#fff" stroke-width="2" 
-              fill="none" stroke-linecap="round" stroke-linejoin="round" />
-      </svg>
-      <div class="upload-box-text">Загрузите фото</div>
-      <input type="file" id="fileInput" accept="image/*">
-    </div>
-
-    <!-- Заголовок (по умолчанию скрыт) -->
-    <h2 class="instruction-title" id="instructionTitle">Обведите область, на которой водяной знак</h2>
-
-    <!-- Обёртка для Canvas (с анимацией появления) -->
-    <div id="canvasWrapper">
-      <canvas id="canvasImage"></canvas>
-      <canvas id="canvasMask"></canvas>
-    </div>
-
-    <!-- Кнопка "Удалить водяной знак" (внизу) -->
-    <button id="removeBtn">Удалить водяной знак</button>
+  <!-- Поле для загрузки -->
+  <div class="upload-box" id="uploadBox">
+    <!-- Иконка загрузки (svg) -->
+    <svg class="upload-icon" viewBox="0 0 24 24">
+      <path d="M12 3v12m0 0l-4-4m4 4 4-4M4 17h16" stroke="#fff" stroke-width="2" 
+            fill="none" stroke-linecap="round" stroke-linejoin="round" />
+    </svg>
+    <div class="upload-box-text">Загрузите фото</div>
+    <input type="file" id="fileInput" accept="image/*">
   </div>
 
-  <!-- Оверлей "обрабатываем..." -->
-  <div class="overlay" id="loadingOverlay">
-    <div class="overlay-content">
-      <div class="spinner"></div>
-      <div class="overlay-text">Обрабатываем...</div>
-    </div>
+  <!-- Заголовок (по умолчанию скрыт) -->
+  <h2 class="instruction-title" id="instructionTitle">
+    Обведите область, на которой водяной знак
+  </h2>
+
+  <!-- Обёртка для Canvas (с анимацией появления) -->
+  <div id="canvasWrapper">
+    <canvas id="canvasImage"></canvas>
+    <canvas id="canvasMask"></canvas>
   </div>
 
-  <script>
-    // При клике на .upload-box - вызываем диалог выбора файла
-    const uploadBox = document.getElementById('uploadBox');
-    const fileInput = document.getElementById('fileInput');
-    uploadBox.addEventListener('click', () => {
-      fileInput.click();
+  <!-- Кнопка "Удалить водяной знак" (внизу) -->
+  <button id="removeBtn">Удалить водяной знак</button>
+</div>
+
+<!-- Оверлей "обрабатываем..." -->
+<div class="overlay" id="loadingOverlay">
+  <div class="overlay-content">
+    <div class="spinner"></div>
+    <div class="overlay-text">Обрабатываем...</div>
+  </div>
+</div>
+
+<script>
+  // При клике на .upload-box - вызываем диалог выбора файла
+  const uploadBox = document.getElementById('uploadBox');
+  const fileInput = document.getElementById('fileInput');
+  uploadBox.addEventListener('click', () => {
+    fileInput.click();
+  });
+</script>
+
+<script>
+/*
+  Вместо рисования кистью делаем «прямоугольное выделение».
+  1) Пользователь тянет (mousedown/touchstart -> mousemove/touchmove -> mouseup/touchend).
+  2) Мы запоминаем startX,startY и рисуем пунктирную рамку (strokeRect) поверх canvasMask.
+  3) При новом выделении стираем старое и рисуем новое.
+  4) При клике "Удалить водяной знак" делаем маску: внутри выбранного прямоугольника — белый цвет, остальное — чёрное.
+*/
+
+const canvasImage       = document.getElementById('canvasImage');
+const canvasMask        = document.getElementById('canvasMask');
+const canvasWrap        = document.getElementById('canvasWrapper');
+const removeBtn         = document.getElementById('removeBtn');
+const overlay           = document.getElementById('loadingOverlay');
+const instructionTitle  = document.getElementById('instructionTitle');
+
+const ctxImage = canvasImage.getContext('2d');
+const ctxMask  = canvasMask.getContext('2d');
+
+let imgWidth = 0;
+let imgHeight = 0;
+
+// Координаты для выделяемого прямоугольника
+let startX = 0, startY = 0; 
+let endX   = 0, endY   = 0;
+let isDragging = false; // флаг для определения процесса "рисования" рамки
+
+fileInput.addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    const img = new Image();
+    img.onload = function() {
+      imgWidth  = img.width;
+      imgHeight = img.height;
+      
+      // Устанавливаем размеры canvas
+      canvasImage.width  = imgWidth;
+      canvasImage.height = imgHeight;
+      canvasMask.width   = imgWidth;
+      canvasMask.height  = imgHeight;
+
+      // Растягиваем (в CSS) на ширину контейнера
+      canvasImage.style.width  = "100%";
+      canvasImage.style.height = "auto";
+      canvasMask.style.width   = "100%";
+      canvasMask.style.height  = "auto";
+
+      // Показываем обёртку с анимацией
+      canvasWrap.style.display = 'block';
+      canvasWrap.classList.add('fade-in');
+
+      // Показываем заголовок (анимация)
+      instructionTitle.style.display = 'block';
+      instructionTitle.classList.add('fade-in');
+
+      // Показываем кнопку
+      removeBtn.style.display  = 'inline-block';
+
+      // Рисуем исходную картинку
+      ctxImage.clearRect(0, 0, imgWidth, imgHeight);
+      ctxImage.drawImage(img, 0, 0);
+
+      // Стираем маску (на случай, если пользователь загрузит другое фото)
+      ctxMask.clearRect(0, 0, imgWidth, imgHeight);
+    }
+    img.src = ev.target.result;
+  }
+  reader.readAsDataURL(file);
+});
+
+// Функция для получения "внутренних" координат canvas при клике/таче
+function getMousePos(canvas, evt) {
+  const rect = canvas.getBoundingClientRect();
+  
+  let clientX = evt.clientX;
+  let clientY = evt.clientY;
+  if (evt.touches && evt.touches.length > 0) {
+    clientX = evt.touches[0].clientX;
+    clientY = evt.touches[0].clientY;
+  }
+
+  const scaleX = canvas.width  / rect.width;
+  const scaleY = canvas.height / rect.height;
+
+  return {
+    x: (clientX - rect.left) * scaleX,
+    y: (clientY - rect.top)  * scaleY
+  };
+}
+
+// Начало выделения
+function onPointerDown(evt) {
+  isDragging = true;
+  const {x, y} = getMousePos(canvasMask, evt);
+  startX = x;
+  startY = y;
+  endX   = x;
+  endY   = y;
+  evt.preventDefault();
+}
+
+// Процесс "рисования" рамки
+function onPointerMove(evt) {
+  if (!isDragging) return;
+  evt.preventDefault();
+  const {x, y} = getMousePos(canvasMask, evt);
+  endX = x;
+  endY = y;
+  
+  // Очищаем canvasMask
+  ctxMask.clearRect(0, 0, imgWidth, imgHeight);
+
+  // Рисуем рамку (пунктирную или сплошную - на ваш вкус)
+  ctxMask.setLineDash([6]);                    // Пунктир
+  ctxMask.lineWidth   = 2;
+  ctxMask.strokeStyle = 'rgba(255,255,255,0.9)';
+
+  // Координаты и размеры
+  const rectX = Math.min(startX, endX);
+  const rectY = Math.min(startY, endY);
+  const rectW = Math.abs(endX - startX);
+  const rectH = Math.abs(endY - startY);
+
+  ctxMask.strokeRect(rectX, rectY, rectW, rectH);
+}
+
+// Завершение выделения
+function onPointerUp(evt) {
+  if (!isDragging) return;
+  isDragging = false;
+  evt.preventDefault();
+
+  // Можно, к примеру, «зафиксировать» итоговую рамку
+  // Она уже нарисована (strokeRect) — остаётся. Но если 
+  // пользователь ещё раз потянет, рамка перерисуется заново.
+}
+
+// Подключаем события мыши и тача
+canvasMask.addEventListener('mousedown', onPointerDown, false);
+canvasMask.addEventListener('mousemove', onPointerMove, false);
+canvasMask.addEventListener('mouseup',   onPointerUp,   false);
+canvasMask.addEventListener('mouseleave', onPointerUp,   false);
+
+canvasMask.addEventListener('touchstart', onPointerDown, false);
+canvasMask.addEventListener('touchmove',  onPointerMove, false);
+canvasMask.addEventListener('touchend',   onPointerUp,   false);
+canvasMask.addEventListener('touchcancel',onPointerUp,   false);
+
+
+// Клик по кнопке «Удалить водяной знак»
+removeBtn.addEventListener('click', async () => {
+  // Если нет файла - выходим
+  if (!fileInput.files[0]) return;
+
+  overlay.classList.add('active');
+
+  // ШАГ 1: Берём исходное изображение
+  const imageDataURL = canvasImage.toDataURL('image/png');
+
+  // ШАГ 2: Формируем маску (всю чёрную, а в прямоугольнике — белую).
+  // Для этого: 
+  //   - чистим canvasMask 
+  //   - рисуем прямоугольник белым цветом
+  //   - всё остальное остаётся чёрным по умолчанию
+  ctxMask.clearRect(0, 0, imgWidth, imgHeight);
+
+  const rectX = Math.min(startX, endX);
+  const rectY = Math.min(startY, endY);
+  const rectW = Math.abs(endX - startX);
+  const rectH = Math.abs(endY - startY);
+
+  // Заливаем весь canvasMask чёрным
+  ctxMask.fillStyle = 'black';
+  ctxMask.fillRect(0, 0, imgWidth, imgHeight);
+
+  // Внутри выбранного прямоугольника — белый
+  ctxMask.fillStyle = 'white';
+  ctxMask.fillRect(rectX, rectY, rectW, rectH);
+
+  // Берём готовую маску
+  const maskDataURL = canvasMask.toDataURL('image/png');
+
+  try {
+    // ШАГ 3: Отправляем POST-запрос
+    const formData = new URLSearchParams();
+    formData.append('image_data', imageDataURL);
+    formData.append('mask_data',  maskDataURL);
+
+    const resp = await fetch('/process', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: formData.toString()
     });
-  </script>
 
-  <script>
-  /*
-    Основная логика:
-    1) Пользователь выбирает файл => мы загружаем в canvasImage.
-    2) Отрисовываем поверх canvasMask (прозрачный). Тут пользователь «рисует» белой кистью.
-    3) По нажатию на "Удалить водяной знак" => собираем:
-        - image_data (base64 из исходного изображения)
-        - mask_data  (base64 из canvasMask)
-       => Отправляем POST-запрос на /process
-    4) Сервер возвращает готовый файл. В данном примере просто откроем его в новой вкладке. 
-  */
-
-  const canvasImage     = document.getElementById('canvasImage');
-  const canvasMask      = document.getElementById('canvasMask');
-  const canvasWrap      = document.getElementById('canvasWrapper');
-  const removeBtn       = document.getElementById('removeBtn');
-  const overlay         = document.getElementById('loadingOverlay');
-  const instructionTitle= document.getElementById('instructionTitle');
-
-  const ctxImage = canvasImage.getContext('2d');
-  const ctxMask  = canvasMask.getContext('2d');
-
-  let drawing = false;
-  let imgWidth = 0;
-  let imgHeight = 0;
-
-  fileInput.addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = function(ev) {
-      const img = new Image();
-      img.onload = function() {
-        imgWidth  = img.width;
-        imgHeight = img.height;
-        
-        // Устанавливаем размеры canvas
-        canvasImage.width  = imgWidth;
-        canvasImage.height = imgHeight;
-        canvasMask.width   = imgWidth;
-        canvasMask.height  = imgHeight;
-
-        // Растягиваем (в CSS) на ширину контейнера
-        canvasImage.style.width  = "100%";
-        canvasImage.style.height = "auto";
-        canvasMask.style.width   = "100%";
-        canvasMask.style.height  = "auto";
-
-        // Показываем обёртку с анимацией
-        canvasWrap.style.display = 'block';
-        canvasWrap.classList.add('fade-in');
-
-        // Показываем заголовок (анимация)
-        instructionTitle.style.display = 'block';
-        instructionTitle.classList.add('fade-in');
-
-        // Показываем кнопку
-        removeBtn.style.display  = 'inline-block';
-
-        // Рисуем картинку
-        ctxImage.clearRect(0, 0, imgWidth, imgHeight);
-        ctxImage.drawImage(img, 0, 0);
-
-        // Чистим маску
-        ctxMask.clearRect(0, 0, imgWidth, imgHeight);
-      }
-      img.src = ev.target.result;
+    if (!resp.ok) {
+      throw new Error(`Server error: ${resp.status}`);
     }
-    reader.readAsDataURL(file);
-  });
+    const blob = await resp.blob();
 
-  // Функция для корректного получения координат с учётом масштабирования canvas
-  function getMousePos(canvas, evt) {
-    const rect = canvas.getBoundingClientRect();
-    
-    // Координаты клика (мышь или тач)
-    let clientX = evt.clientX;
-    let clientY = evt.clientY;
-    if (evt.touches && evt.touches.length > 0) {
-      clientX = evt.touches[0].clientX;
-      clientY = evt.touches[0].clientY;
-    }
+    overlay.classList.remove('active');
 
-    // Коэффициенты масштабирования
-    const scaleX = canvas.width  / rect.width;
-    const scaleY = canvas.height / rect.height;
-
-    return {
-      x: (clientX - rect.left) * scaleX,
-      y: (clientY - rect.top)  * scaleY
-    };
+    // Открываем результат в новой вкладке
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank');
+  } catch(e) {
+    overlay.classList.remove('active');
+    alert('Произошла ошибка при обработке: ' + e.message);
   }
-
-  // Управление рисованием на маске
-  function startDrawing(evt) {
-    drawing = true;
-    ctxMask.beginPath();
-    const {x, y} = getMousePos(canvasMask, evt);
-    ctxMask.moveTo(x, y);
-    evt.preventDefault();
-  }
-  function draw(evt) {
-    if (!drawing) return;
-    evt.preventDefault();
-    const {x, y} = getMousePos(canvasMask, evt);
-    ctxMask.lineTo(x, y);
-    ctxMask.strokeStyle = 'white';
-    ctxMask.lineWidth = 20;
-    ctxMask.lineCap = 'round';
-    ctxMask.lineJoin = 'round';
-    ctxMask.stroke();
-  }
-  function endDrawing(evt) {
-    drawing = false;
-    ctxMask.closePath();
-    evt.preventDefault();
-  }
-
-  // События мыши
-  canvasMask.addEventListener('mousedown', startDrawing, false);
-  canvasMask.addEventListener('mousemove', draw, false);
-  canvasMask.addEventListener('mouseup', endDrawing, false);
-  canvasMask.addEventListener('mouseleave', endDrawing, false);
-
-  // События тачей
-  canvasMask.addEventListener('touchstart', startDrawing, false);
-  canvasMask.addEventListener('touchmove', draw, false);
-  canvasMask.addEventListener('touchend', endDrawing, false);
-  canvasMask.addEventListener('touchcancel', endDrawing, false);
-
-  // Клик по кнопке «Удалить водяной знак»
-  removeBtn.addEventListener('click', async () => {
-    if (!fileInput.files[0]) return;
-    overlay.classList.add('active');
-
-    const imageDataURL = canvasImage.toDataURL('image/png');
-    const maskDataURL  = canvasMask.toDataURL('image/png');
-
-    try {
-      const formData = new URLSearchParams();
-      formData.append('image_data', imageDataURL);
-      formData.append('mask_data',  maskDataURL);
-
-      const resp = await fetch('/process', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: formData.toString()
-      });
-
-      if (!resp.ok) {
-        throw new Error(`Server error: ${resp.status}`);
-      }
-      const blob = await resp.blob();
-
-      overlay.classList.remove('active');
-
-      // Открываем результат в новой вкладке
-      const url = URL.createObjectURL(blob);
-      window.open(url, '_blank');
-    } catch(e) {
-      overlay.classList.remove('active');
-      alert('Произошла ошибка при обработке: ' + e.message);
-    }
-  });
-  </script>
+});
+</script>
 
 </body>
 </html>
-
