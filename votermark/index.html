@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Удаление водяного знака</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Подключаем шрифт Inter -->
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap');
+  </style>
+
+  <style>
+    :root {
+      --bg-color: #0A0A16;
+      --text-color: #FFFFFF;
+      --accent-color: #D3286C;
+      --border-color: #FFFFFF;
+      --font-family: 'Inter', sans-serif;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: var(--bg-color);
+      font-family: var(--font-family);
+      color: var(--text-color);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 400px;
+      margin: 0 auto;
+      padding: 20px;
+      box-sizing: border-box;
+      text-align: center;
+    }
+
+    /* Лого (svg) */
+    .logo {
+      display: block;
+      width: 60px;
+      height: 60px;
+      margin: 40px auto 20px auto; /* 40px сверху, 20px снизу */
+    }
+
+    /* Прямоугольник для загрузки фото */
+    .upload-box {
+      border: 2px dashed var(--border-color);
+      border-radius: 15px;
+      padding: 30px 20px;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      row-gap: 15px; /* Расстояние между иконкой и текстом */
+      margin: 0 auto 20px auto;
+      width: 100%;
+      max-width: 100%;
+      cursor: pointer;
+    }
+    .upload-box-text {
+      font-size: 16px;
+    }
+    .upload-icon {
+      width: 32px;
+      height: 32px;
+      fill: var(--text-color);
+    }
+    #fileInput {
+      display: none;
+    }
+
+    /* Кнопка */
+    #removeBtn {
+      display: none; /* изначально скрыта, появится после выбора файла */
+      background-color: var(--accent-color);
+      color: #fff;
+      font-size: 16px;
+      padding: 14px 20px;
+      border: none;
+      border-radius: 15px;
+      cursor: pointer;
+      text-decoration: none;
+      margin-bottom: 30px; /* отступ до блока "Наши новости" */
+    }
+    #removeBtn:hover {
+      opacity: 0.9;
+    }
+
+    /* Обёртка для canvas (тоже скрываем до загрузки файла) */
+    #canvasWrapper {
+      display: none;
+      position: relative;
+      width: 100%;
+      max-width: 100%;
+      margin-bottom: 20px;
+    }
+    #canvasImage, #canvasMask {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+    #canvasMask {
+      position: absolute;
+      left: 0;
+      top: 0;
+    }
+
+    /* Наши новости */
+    .news-section {
+      margin-top: 0; /* т.к. у кнопки уже 30px снизу */
+    }
+    .news-title {
+      font-weight: 600; /* полужирный */
+      font-size: 18px;
+      margin-bottom: 15px;
+    }
+    .news-image {
+      width: 100%;
+      max-width: 100%;
+      border-radius: 8px;
+      display: block;
+      margin: 0 auto;
+    }
+    .news-text {
+      margin-top: 10px;
+      font-size: 14px;
+      color: #FFFFFF;
+    }
+
+    /* Оверлей загрузки */
+    .overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: rgba(0,0,0,0.4);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+      visibility: hidden; /* скрыт */
+    }
+    .overlay.active {
+      visibility: visible;
+    }
+    .overlay-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .spinner {
+      width: 60px;
+      height: 60px;
+      border: 8px solid #f3f3f3;
+      border-top: 8px solid #3498db;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      background: transparent;
+    }
+    @keyframes spin {
+      0%   { transform: rotate(0deg);   }
+      100% { transform: rotate(360deg); }
+    }
+    .overlay-text {
+      color: #fff;
+      margin-top: 15px;
+      font-size: 18px;
+      font-family: var(--font-family);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <!-- Лого (svg) -->
+    <img class="logo" src="logo.svg" alt="Logo">
+
+    <!-- Поле для загрузки -->
+    <div class="upload-box" id="uploadBox">
+      <!-- Иконка загрузки (svg) -->
+      <svg class="upload-icon" viewBox="0 0 24 24">
+        <path d="M12 3v12m0 0l-4-4m4 4 4-4M4 17h16" stroke="#fff" stroke-width="2" 
+              fill="none" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+      <div class="upload-box-text">Загрузите фото</div>
+      <input type="file" id="fileInput" accept="image/*">
+    </div>
+
+    <!-- Кнопка -->
+    <button id="removeBtn">Удалить водяной знак</button>
+
+    <!-- Canvas-ы -->
+    <div id="canvasWrapper">
+      <canvas id="canvasImage"></canvas>
+      <canvas id="canvasMask"></canvas>
+    </div>
+
+
+  <!-- Оверлей "обрабатываем..." -->
+  <div class="overlay" id="loadingOverlay">
+    <div class="overlay-content">
+      <div class="spinner"></div>
+      <div class="overlay-text">Обрабатываем...</div>
+    </div>
+  </div>
+
+  <script>
+    // При клике на .upload-box - вызываем диалог выбора файла
+    const uploadBox = document.getElementById('uploadBox');
+    const fileInput = document.getElementById('fileInput');
+    uploadBox.addEventListener('click', () => {
+      fileInput.click();
+    });
+  </script>
+
+  <!-- Тут тот же JS-код, который вы приводили (см. ниже) -->
+  <script>
+  /*
+    Основная логика:
+    1) Пользователь выбирает файл => мы загружаем в canvasImage.
+    2) Отрисовываем поверх canvasMask (прозрачный). Тут пользователь «рисует» белой кистью.
+    3) По нажатию на "Удалить водяной знак" => собираем:
+        - image_data (base64 из исходного изображения)
+        - mask_data  (base64 из canvasMask)
+       => Отправляем POST-запрос на /process
+    4) Сервер возвращает готовый файл. В данном примере просто откроем его в новой вкладке. 
+  */
+
+  const canvasImage  = document.getElementById('canvasImage');
+  const canvasMask   = document.getElementById('canvasMask');
+  const canvasWrap   = document.getElementById('canvasWrapper');
+  const removeBtn    = document.getElementById('removeBtn');
+  const overlay      = document.getElementById('loadingOverlay');
+
+  const ctxImage = canvasImage.getContext('2d');
+  const ctxMask  = canvasMask.getContext('2d');
+
+  let drawing = false;
+  let imgWidth = 0;
+  let imgHeight = 0;
+
+  fileInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+      const img = new Image();
+      img.onload = function() {
+        imgWidth  = img.width;
+        imgHeight = img.height;
+        
+        canvasImage.width  = imgWidth;
+        canvasImage.height = imgHeight;
+        canvasMask.width   = imgWidth;
+        canvasMask.height  = imgHeight;
+
+        // Адаптивно впишем сами canvas'ы
+        canvasImage.style.width  = "100%";
+        canvasImage.style.height = "auto";
+        canvasMask.style.width   = "100%";
+        canvasMask.style.height  = "auto";
+
+        // Показываем обёртку и кнопку
+        canvasWrap.style.display = 'block';
+        removeBtn.style.display  = 'inline-block';
+
+        // Рисуем картинку
+        ctxImage.clearRect(0, 0, imgWidth, imgHeight);
+        ctxImage.drawImage(img, 0, 0);
+
+        // Чистим маску
+        ctxMask.clearRect(0, 0, imgWidth, imgHeight);
+      }
+      img.src = ev.target.result;
+    }
+    reader.readAsDataURL(file);
+  });
+
+  function getMousePos(canvas, evt) {
+    const rect = canvas.getBoundingClientRect();
+    let clientX = evt.clientX;
+    let clientY = evt.clientY;
+    if(evt.touches && evt.touches.length > 0) {
+      clientX = evt.touches[0].clientX;
+      clientY = evt.touches[0].clientY;
+    }
+    return {
+      x: clientX - rect.left,
+      y: clientY - rect.top
+    };
+  }
+
+  function startDrawing(evt) {
+    drawing = true;
+    ctxMask.beginPath();
+    const {x, y} = getMousePos(canvasMask, evt);
+    ctxMask.moveTo(x, y);
+    evt.preventDefault();
+  }
+  function draw(evt) {
+    if(!drawing) return;
+    evt.preventDefault();
+    const {x, y} = getMousePos(canvasMask, evt);
+    ctxMask.lineTo(x, y);
+    ctxMask.strokeStyle = 'white';
+    ctxMask.lineWidth = 20;
+    ctxMask.lineCap = 'round';
+    ctxMask.lineJoin = 'round';
+    ctxMask.stroke();
+  }
+  function endDrawing(evt) {
+    drawing = false;
+    ctxMask.closePath();
+    evt.preventDefault();
+  }
+
+  canvasMask.addEventListener('mousedown', startDrawing, false);
+  canvasMask.addEventListener('mousemove', draw, false);
+  canvasMask.addEventListener('mouseup', endDrawing, false);
+  canvasMask.addEventListener('mouseleave', endDrawing, false);
+
+  canvasMask.addEventListener('touchstart', startDrawing, false);
+  canvasMask.addEventListener('touchmove', draw, false);
+  canvasMask.addEventListener('touchend', endDrawing, false);
+  canvasMask.addEventListener('touchcancel', endDrawing, false);
+
+  removeBtn.addEventListener('click', async () => {
+    if(!fileInput.files[0]) return;
+    overlay.classList.add('active');
+
+    const imageDataURL = canvasImage.toDataURL('image/png');
+    const maskDataURL  = canvasMask.toDataURL('image/png');
+
+    try {
+      const formData = new URLSearchParams();
+      formData.append('image_data', imageDataURL);
+      formData.append('mask_data',  maskDataURL);
+
+      const resp = await fetch('/process', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: formData.toString()
+      });
+
+      if(!resp.ok) {
+        throw new Error(`Server error: ${resp.status}`);
+      }
+      const blob = await resp.blob();
+
+      overlay.classList.remove('active');
+
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank');
+    } catch(e) {
+      overlay.classList.remove('active');
+      alert('Произошла ошибка при обработке: ' + e.message);
+    }
+  });
+  </script>
+
+</body>
+</html>
+
