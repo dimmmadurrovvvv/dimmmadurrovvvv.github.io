@@ -19,15 +19,13 @@
       --font-family: 'Inter', sans-serif;
     }
 
+    /* Отключили flex на body, чтобы можно было скроллить большую картинку */
     body {
       margin: 0;
       padding: 0;
       background-color: var(--bg-color);
       font-family: var(--font-family);
       color: var(--text-color);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
     }
 
     .container {
@@ -75,26 +73,18 @@
       display: none;
     }
 
-    /* Кнопка */
-    #removeBtn {
-      display: none; /* изначально скрыта, появится после выбора файла */
-      background-color: var(--accent-color);
-      color: #fff;
+    /* Заголовок над изображением */
+    .instruction-title {
+      margin-top: 35px;
+      margin-bottom: 15px;
       font-size: 16px;
-      padding: 14px 20px;
-      border: none;
-      border-radius: 15px;
-      cursor: pointer;
-      text-decoration: none;
-      margin-bottom: 30px; /* отступ до блока "Наши новости" */
-    }
-    #removeBtn:hover {
-      opacity: 0.9;
+      font-weight: 600;
     }
 
-    /* Обёртка для canvas (тоже скрываем до загрузки файла) */
+    /* Обёртка для canvas */
     #canvasWrapper {
-      display: none;
+      display: none;           /* Изначально скрыт, появится после загрузки */
+      opacity: 0;             /* Чтобы анимация fade-in была заметна */
       position: relative;
       width: 100%;
       max-width: 100%;
@@ -111,26 +101,30 @@
       top: 0;
     }
 
-    /* Наши новости */
-    .news-section {
-      margin-top: 0; /* т.к. у кнопки уже 30px снизу */
+    /* Кнопка «Удалить водяной знак» (теперь она снизу) */
+    #removeBtn {
+      display: none; /* изначально скрыта, появится после выбора файла */
+      background-color: var(--accent-color);
+      color: #fff;
+      font-size: 16px;
+      padding: 14px 20px;
+      border: none;
+      border-radius: 15px;
+      cursor: pointer;
+      text-decoration: none;
+      margin-bottom: 30px; 
     }
-    .news-title {
-      font-weight: 600; /* полужирный */
-      font-size: 18px;
-      margin-bottom: 15px;
+    #removeBtn:hover {
+      opacity: 0.9;
     }
-    .news-image {
-      width: 100%;
-      max-width: 100%;
-      border-radius: 8px;
-      display: block;
-      margin: 0 auto;
+
+    /* Анимация появления (fade-in) */
+    .fade-in {
+      animation: fadeIn 0.4s ease forwards;
     }
-    .news-text {
-      margin-top: 10px;
-      font-size: 14px;
-      color: #FFFFFF;
+    @keyframes fadeIn {
+      0% { opacity: 0; }
+      100% { opacity: 1; }
     }
 
     /* Оверлей загрузки */
@@ -190,15 +184,18 @@
       <input type="file" id="fileInput" accept="image/*">
     </div>
 
-    <!-- Кнопка -->
-    <button id="removeBtn">Удалить водяной знак</button>
+    <!-- Заголовок для выделения области водяного знака -->
+    <h2 class="instruction-title">Обведите область, на которой водяной знак</h2>
 
-    <!-- Canvas-ы -->
+    <!-- Обёртка для Canvas (с анимацией появления) -->
     <div id="canvasWrapper">
       <canvas id="canvasImage"></canvas>
       <canvas id="canvasMask"></canvas>
     </div>
 
+    <!-- Кнопка "Удалить водяной знак" (внизу) -->
+    <button id="removeBtn">Удалить водяной знак</button>
+  </div>
 
   <!-- Оверлей "обрабатываем..." -->
   <div class="overlay" id="loadingOverlay">
@@ -217,7 +214,6 @@
     });
   </script>
 
-  <!-- Тут тот же JS-код, который вы приводили (см. ниже) -->
   <script>
   /*
     Основная логика:
@@ -254,19 +250,23 @@
         imgWidth  = img.width;
         imgHeight = img.height;
         
+        // Устанавливаем размеры canvas
         canvasImage.width  = imgWidth;
         canvasImage.height = imgHeight;
         canvasMask.width   = imgWidth;
         canvasMask.height  = imgHeight;
 
-        // Адаптивно впишем сами canvas'ы
+        // Растягиваем (в CSS) на ширину контейнера
         canvasImage.style.width  = "100%";
         canvasImage.style.height = "auto";
         canvasMask.style.width   = "100%";
         canvasMask.style.height  = "auto";
 
-        // Показываем обёртку и кнопку
+        // Показываем обёртку с анимацией
         canvasWrap.style.display = 'block';
+        canvasWrap.classList.add('fade-in');
+
+        // Показываем кнопку
         removeBtn.style.display  = 'inline-block';
 
         // Рисуем картинку
@@ -281,28 +281,29 @@
     reader.readAsDataURL(file);
   });
 
+  // Функция для корректного получения координат с учётом масштабирования canvas
   function getMousePos(canvas, evt) {
-  const rect = canvas.getBoundingClientRect();
+    const rect = canvas.getBoundingClientRect();
+    
+    // Координаты клика (мышь или тач)
+    let clientX = evt.clientX;
+    let clientY = evt.clientY;
+    if (evt.touches && evt.touches.length > 0) {
+      clientX = evt.touches[0].clientX;
+      clientY = evt.touches[0].clientY;
+    }
 
-  // Считываем координаты мыши или тача
-  let clientX = evt.clientX;
-  let clientY = evt.clientY;
-  if (evt.touches && evt.touches.length > 0) {
-    clientX = evt.touches[0].clientX;
-    clientY = evt.touches[0].clientY;
+    // Коэффициенты масштабирования
+    const scaleX = canvas.width  / rect.width;
+    const scaleY = canvas.height / rect.height;
+
+    return {
+      x: (clientX - rect.left) * scaleX,
+      y: (clientY - rect.top)  * scaleY
+    };
   }
 
-  // Считаем коэффициенты масштабирования
-  const scaleX = canvas.width  / rect.width;
-  const scaleY = canvas.height / rect.height;
-
-  // Возвращаем «правильные» координаты внутри canvas
-  return {
-    x: (clientX - rect.left) * scaleX,
-    y: (clientY - rect.top)  * scaleY
-  };
-}
-
+  // Управление рисованием на маске
   function startDrawing(evt) {
     drawing = true;
     ctxMask.beginPath();
@@ -311,7 +312,7 @@
     evt.preventDefault();
   }
   function draw(evt) {
-    if(!drawing) return;
+    if (!drawing) return;
     evt.preventDefault();
     const {x, y} = getMousePos(canvasMask, evt);
     ctxMask.lineTo(x, y);
@@ -327,18 +328,21 @@
     evt.preventDefault();
   }
 
+  // События мыши
   canvasMask.addEventListener('mousedown', startDrawing, false);
   canvasMask.addEventListener('mousemove', draw, false);
   canvasMask.addEventListener('mouseup', endDrawing, false);
   canvasMask.addEventListener('mouseleave', endDrawing, false);
 
+  // События тачей
   canvasMask.addEventListener('touchstart', startDrawing, false);
   canvasMask.addEventListener('touchmove', draw, false);
   canvasMask.addEventListener('touchend', endDrawing, false);
   canvasMask.addEventListener('touchcancel', endDrawing, false);
 
+  // Клик по кнопке «Удалить водяной знак»
   removeBtn.addEventListener('click', async () => {
-    if(!fileInput.files[0]) return;
+    if (!fileInput.files[0]) return;
     overlay.classList.add('active');
 
     const imageDataURL = canvasImage.toDataURL('image/png');
@@ -351,17 +355,18 @@
 
       const resp = await fetch('/process', {
         method: 'POST',
-        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: formData.toString()
       });
 
-      if(!resp.ok) {
+      if (!resp.ok) {
         throw new Error(`Server error: ${resp.status}`);
       }
       const blob = await resp.blob();
 
       overlay.classList.remove('active');
 
+      // Открываем результат в новой вкладке
       const url = URL.createObjectURL(blob);
       window.open(url, '_blank');
     } catch(e) {
@@ -373,4 +378,3 @@
 
 </body>
 </html>
-
