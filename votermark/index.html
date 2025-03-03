@@ -282,18 +282,26 @@
   });
 
   function getMousePos(canvas, evt) {
-    const rect = canvas.getBoundingClientRect();
-    let clientX = evt.clientX;
-    let clientY = evt.clientY;
-    if(evt.touches && evt.touches.length > 0) {
-      clientX = evt.touches[0].clientX;
-      clientY = evt.touches[0].clientY;
-    }
-    return {
-      x: clientX - rect.left,
-      y: clientY - rect.top
-    };
+  const rect = canvas.getBoundingClientRect();
+
+  // Считываем координаты мыши или тача
+  let clientX = evt.clientX;
+  let clientY = evt.clientY;
+  if (evt.touches && evt.touches.length > 0) {
+    clientX = evt.touches[0].clientX;
+    clientY = evt.touches[0].clientY;
   }
+
+  // Считаем коэффициенты масштабирования
+  const scaleX = canvas.width  / rect.width;
+  const scaleY = canvas.height / rect.height;
+
+  // Возвращаем «правильные» координаты внутри canvas
+  return {
+    x: (clientX - rect.left) * scaleX,
+    y: (clientY - rect.top)  * scaleY
+  };
+}
 
   function startDrawing(evt) {
     drawing = true;
