@@ -73,8 +73,9 @@
       display: none;
     }
 
-    /* Заголовок над изображением */
+    /* Заголовок по умолчанию скрыт */
     .instruction-title {
+      display: none;
       margin-top: 35px;
       margin-bottom: 15px;
       font-size: 16px;
@@ -101,7 +102,7 @@
       top: 0;
     }
 
-    /* Кнопка «Удалить водяной знак» (теперь она снизу) */
+    /* Кнопка «Удалить водяной знак» (внизу) */
     #removeBtn {
       display: none; /* изначально скрыта, появится после выбора файла */
       background-color: var(--accent-color);
@@ -184,8 +185,8 @@
       <input type="file" id="fileInput" accept="image/*">
     </div>
 
-    <!-- Заголовок для выделения области водяного знака -->
-    <h2 class="instruction-title">Обведите область, на которой водяной знак</h2>
+    <!-- Заголовок (по умолчанию скрыт) -->
+    <h2 class="instruction-title" id="instructionTitle">Обведите область, на которой водяной знак</h2>
 
     <!-- Обёртка для Canvas (с анимацией появления) -->
     <div id="canvasWrapper">
@@ -226,11 +227,12 @@
     4) Сервер возвращает готовый файл. В данном примере просто откроем его в новой вкладке. 
   */
 
-  const canvasImage  = document.getElementById('canvasImage');
-  const canvasMask   = document.getElementById('canvasMask');
-  const canvasWrap   = document.getElementById('canvasWrapper');
-  const removeBtn    = document.getElementById('removeBtn');
-  const overlay      = document.getElementById('loadingOverlay');
+  const canvasImage     = document.getElementById('canvasImage');
+  const canvasMask      = document.getElementById('canvasMask');
+  const canvasWrap      = document.getElementById('canvasWrapper');
+  const removeBtn       = document.getElementById('removeBtn');
+  const overlay         = document.getElementById('loadingOverlay');
+  const instructionTitle= document.getElementById('instructionTitle');
 
   const ctxImage = canvasImage.getContext('2d');
   const ctxMask  = canvasMask.getContext('2d');
@@ -265,6 +267,10 @@
         // Показываем обёртку с анимацией
         canvasWrap.style.display = 'block';
         canvasWrap.classList.add('fade-in');
+
+        // Показываем заголовок (анимация)
+        instructionTitle.style.display = 'block';
+        instructionTitle.classList.add('fade-in');
 
         // Показываем кнопку
         removeBtn.style.display  = 'inline-block';
@@ -378,3 +384,4 @@
 
 </body>
 </html>
+
