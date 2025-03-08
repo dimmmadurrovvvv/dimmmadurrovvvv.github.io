@@ -408,11 +408,11 @@ removeBtn.addEventListener('click', async () => {
     formData.append('image_data', imageDataURL);
     formData.append('mask_data',  maskDataURL);
 
-    const resp = await fetch('/process', {
+    const resp = await fetch('http://5.35.29.25:5000/process', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: formData.toString()
-    });
+});
 
     if (!resp.ok) {
       throw new Error(`Server error: ${resp.status}`);
