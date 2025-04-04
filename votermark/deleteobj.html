@@ -2,14 +2,13 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <title>Удалить или заменить объект</title>
+  <title>Удалить объект</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- Подключаем шрифт Inter -->
+  <!-- Google Fonts Inter -->
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap');
   </style>
-
   <style>
     :root {
       --bg-color: #0A0A16;
@@ -18,15 +17,12 @@
       --border-color: #FFFFFF;
       --font-family: 'Inter', sans-serif;
     }
-
     body {
-      margin: 0;
-      padding: 0;
+      margin: 0; padding: 0;
       background-color: var(--bg-color);
-      font-family: var(--font-family);  
+      font-family: var(--font-family);
       color: var(--text-color);
     }
-
     .container {
       width: 100%;
       max-width: 400px;
@@ -35,136 +31,90 @@
       box-sizing: border-box;
       text-align: center;
     }
-
-    /* Лого (svg) */
     .logo {
       display: block;
       width: 100px;
       height: 100px;
       margin: 40px auto 20px auto; 
     }
-
-    /* Прямоугольник для загрузки фото */
     .upload-box {
       border: 2px dashed var(--border-color);
       border-radius: 15px;
       padding: 30px 20px;
-      box-sizing: border-box;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
       row-gap: 15px;
       margin: 0 auto 20px auto;
-      width: 100%;
-      max-width: 100%;
+      width: 100%; max-width: 100%;
       cursor: pointer;
     }
     .upload-box-text {
       font-size: 16px;
     }
     .upload-icon {
-      width: 32px;
-      height: 32px;
+      width: 32px; height: 32px;
       fill: var(--text-color);
     }
-    #fileInput {
-      display: none;
-    }
+    #fileInput { display: none; }
 
-    /* Заголовок по умолчанию скрыт */
     .instruction-title {
       display: none;
-      margin-top: 35px;
-      margin-bottom: 15px;
-      font-size: 16px;
-      font-weight: 600;
+      margin-top: 35px; margin-bottom: 15px;
+      font-size: 16px; font-weight: 600;
     }
-
-    /* Обёртка для Canvas */
     #canvasWrapper {
-      display: none;  /* Изначально скрыт, появится после загрузки */
-      opacity: 0;     /* Чтобы анимация fade-in была заметна */
+      display: none;
+      opacity: 0;
       position: relative;
-      width: 100%;
-      max-width: 100%;
+      width: 100%; max-width: 100%;
       margin-bottom: 20px;
     }
     #canvasImage, #canvasMask {
-      display: block;
-      width: 100%;
-      height: auto;
+      display: block; width: 100%; height: auto;
     }
     #canvasMask {
-      position: absolute;
-      left: 0;
-      top: 0;
+      position: absolute; left: 0; top: 0;
     }
-
-    /* Кнопки «Удалить объект» и «Заменить объект» */
     .action-btn {
-      display: none; /* кнопки скрыты до выделения */
+      display: none;
       background-color: var(--accent-color);
       color: #fff;
       font-size: 16px;
       padding: 14px 20px;
-      border: none;
-      border-radius: 15px;
+      border: none; border-radius: 15px;
       cursor: pointer;
       text-decoration: none;
-      margin-bottom: 15px; 
+      margin-bottom: 15px;
       width: 100%;
-      max-width: 100%;
     }
-    .action-btn:hover {
-      opacity: 0.9;
-    }
-
-    /* Анимация появления (fade-in) */
+    .action-btn:hover { opacity: 0.9; }
     .fade-in {
       animation: fadeIn 0.4s ease forwards;
     }
     @keyframes fadeIn {
-      0% { opacity: 0; }
+      0%   { opacity: 0;   }
       100% { opacity: 1; }
     }
-
-    /* Оверлей загрузки */
     .overlay {
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
+      position: fixed; top:0; left:0; right:0; bottom:0;
       background-color: rgba(0,0,0,0.4);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      z-index: 9999;
-      visibility: hidden;
+      display: flex; justify-content: center; align-items: center;
+      z-index: 9999; visibility: hidden;
     }
-    .overlay.active {
-      visibility: visible;
-    }
+    .overlay.active { visibility: visible; }
     .overlay-content {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
+      display: flex; flex-direction: column; align-items: center;
     }
     .spinner {
-      width: 60px;
-      height: 60px;
-      border: 8px solid #f3f3f3;
-      border-top: 8px solid #3498db;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-      background: transparent;
+      width: 60px; height: 60px;
+      border: 8px solid #f3f3f3; border-top: 8px solid #3498db;
+      border-radius: 50%; animation: spin 1s linear infinite; background: transparent;
     }
     @keyframes spin {
       0%   { transform: rotate(0deg);   }
       100% { transform: rotate(360deg); }
     }
     .overlay-text {
-      color: #fff;
-      margin-top: 15px;
-      font-size: 18px;
+      color: #fff; margin-top: 15px; font-size: 18px;
       font-family: var(--font-family);
     }
   </style>
@@ -174,38 +124,29 @@
 <div class="container">
   <img class="logo" src="./logo.svg" alt="Logo">
 
-  <!-- Поле для загрузки -->
   <div class="upload-box" id="uploadBox">
-    <!-- Иконка загрузки (svg) -->
     <svg class="upload-icon" viewBox="0 0 24 24">
-      <path d="M12 3v12m0 0l-4-4m4 4 4-4M4 17h16" stroke="#fff" stroke-width="2" 
-            fill="none" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M12 3v12m0 0l-4-4m4 4 4-4M4 17h16"
+            stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
     </svg>
     <div class="upload-box-text">Загрузите фото</div>
     <input type="file" id="fileInput" accept="image/*">
   </div>
 
-  <!-- Заголовок (по умолчанию скрыт) -->
   <h2 class="instruction-title" id="instructionTitle">
-    Обведите объект, который нужно удалить или заменить
+    Обведите объект, который нужно удалить
   </h2>
 
-  <!-- Обёртка для Canvas (с анимацией появления) -->
   <div id="canvasWrapper">
     <canvas id="canvasImage"></canvas>
     <canvas id="canvasMask"></canvas>
   </div>
 
-  <!-- Кнопки -->
+  <!-- Одна кнопка удаления -->
   <button id="removeBtn" class="action-btn">Удалить объект</button>
-  <button id="replaceBtn" class="action-btn">Заменить объект</button>
-
 </div>
 
-<!-- Поле для выбора изображения для "замены" (скрыто) -->
-<input type="file" id="replacementInput" accept="image/*" style="display: none;">
-
-<!-- Оверлей "обрабатываем..." -->
+<!-- Оверлей -->
 <div class="overlay" id="loadingOverlay">
   <div class="overlay-content">
     <div class="spinner"></div>
@@ -214,283 +155,199 @@
 </div>
 
 <script>
-  // Клик по блоку загрузки – вызов диалога
-  const uploadBox         = document.getElementById('uploadBox');
-  const fileInput         = document.getElementById('fileInput');
-  const canvasImage       = document.getElementById('canvasImage');
-  const canvasMask        = document.getElementById('canvasMask');
-  const canvasWrap        = document.getElementById('canvasWrapper');
-  const removeBtn         = document.getElementById('removeBtn');
-  const replaceBtn        = document.getElementById('replaceBtn');
-  const overlay           = document.getElementById('loadingOverlay');
-  const instructionTitle  = document.getElementById('instructionTitle');
-  const replacementInput  = document.getElementById('replacementInput');
+  // ---------------------------------------------------------
+  // 1) Считываем chat_id из URL
+  // ---------------------------------------------------------
+  const urlParams = new URLSearchParams(window.location.search);
+  const chatId = urlParams.get("chat_id"); 
+  // Например, если URL = https://example.com/index.html?chat_id=12345
 
-  uploadBox.addEventListener('click', () => {
-    fileInput.click();
-  });
+  // ---------------------------------------------------------
+  // 2) DOM-элементы
+  // ---------------------------------------------------------
+  const uploadBox    = document.getElementById('uploadBox');
+  const fileInput    = document.getElementById('fileInput');
+  const canvasImage  = document.getElementById('canvasImage');
+  const canvasMask   = document.getElementById('canvasMask');
+  const canvasWrap   = document.getElementById('canvasWrapper');
+  const removeBtn    = document.getElementById('removeBtn');
+  const overlay      = document.getElementById('loadingOverlay');
+  const instructionTitle = document.getElementById('instructionTitle');
 
   const ctxImage = canvasImage.getContext('2d');
   const ctxMask  = canvasMask.getContext('2d');
 
-  let imgWidth = 0;
+  let imgWidth  = 0;
   let imgHeight = 0;
 
-  // Координаты рамки
-  let startX = 0, startY = 0; 
-  let endX   = 0, endY   = 0;
+  let startX=0, startY=0;
+  let endX=0, endY=0;
   let isDragging = false;
 
-  // При выборе файла
+  // ---------------------------------------------------------
+  // 3) События
+  // ---------------------------------------------------------
+  uploadBox.addEventListener('click', () => fileInput.click());
+
   fileInput.addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = function(ev) {
+    reader.onload = (ev) => {
       const img = new Image();
-      img.onload = function() {
+      img.onload = () => {
         imgWidth  = img.width;
         imgHeight = img.height;
-        
-        // Устанавливаем размеры canvas
+
         canvasImage.width  = imgWidth;
         canvasImage.height = imgHeight;
         canvasMask.width   = imgWidth;
         canvasMask.height  = imgHeight;
 
-        // Растягиваем (в CSS) на ширину контейнера
-        canvasImage.style.width  = "100%";
-        canvasImage.style.height = "auto";
-        canvasMask.style.width   = "100%";
-        canvasMask.style.height  = "auto";
+        canvasImage.style.width  = '100%';
+        canvasImage.style.height = 'auto';
+        canvasMask.style.width   = '100%';
+        canvasMask.style.height  = 'auto';
 
-        // Показываем обёртку с анимацией
         canvasWrap.style.display = 'block';
         canvasWrap.classList.add('fade-in');
 
-        // Показываем заголовок
         instructionTitle.style.display = 'block';
         instructionTitle.classList.add('fade-in');
 
-        // Сбрасываем и скрываем кнопки
         removeBtn.style.display = 'none';
-        replaceBtn.style.display = 'none';
 
-        // Рисуем исходное изображение
-        ctxImage.clearRect(0, 0, imgWidth, imgHeight);
-        ctxImage.drawImage(img, 0, 0);
-
-        // Стираем маску
-        ctxMask.clearRect(0, 0, imgWidth, imgHeight);
+        ctxImage.clearRect(0,0,imgWidth,imgHeight);
+        ctxImage.drawImage(img,0,0);
+        ctxMask.clearRect(0,0,imgWidth,imgHeight);
       }
       img.src = ev.target.result;
     }
     reader.readAsDataURL(file);
   });
 
-  // Получение "внутренних" координат canvas
-  function getMousePos(canvas, evt) {
-    const rect = canvas.getBoundingClientRect();
-    
-    let clientX = evt.clientX;
-    let clientY = evt.clientY;
-    if (evt.touches && evt.touches.length > 0) {
-      clientX = evt.touches[0].clientX;
-      clientY = evt.touches[0].clientY;
-    }
-
-    const scaleX = canvas.width  / rect.width;
-    const scaleY = canvas.height / rect.height;
-
-    return {
-      x: (clientX - rect.left) * scaleX,
-      y: (clientY - rect.top)  * scaleY
-    };
-  }
-
-  // Начало выделения
-  function onPointerDown(evt) {
-    isDragging = true;
-    const {x, y} = getMousePos(canvasMask, evt);
-    startX = x;
-    startY = y;
-    endX   = x;
-    endY   = y;
-    evt.preventDefault();
-  }
-
-  // Рисование рамки
-  function onPointerMove(evt) {
-    if (!isDragging) return;
-    evt.preventDefault();
-    const {x, y} = getMousePos(canvasMask, evt);
-    endX = x;
-    endY = y;
-    
-    // Очищаем canvasMask
-    ctxMask.clearRect(0, 0, imgWidth, imgHeight);
-
-    // Рисуем пунктирную рамку
-    ctxMask.setLineDash([6]);
-    ctxMask.lineWidth   = 30;
-    ctxMask.strokeStyle = 'rgba(211, 40, 108,0.9)';
-
-    const rectX = Math.min(startX, endX);
-    const rectY = Math.min(startY, endY);
-    const rectW = Math.abs(endX - startX);
-    const rectH = Math.abs(endY - startY);
-
-    ctxMask.strokeRect(rectX, rectY, rectW, rectH);
-  }
-
-  // Завершение выделения
-  function onPointerUp(evt) {
-    if (!isDragging) return;
-    isDragging = false;
-    evt.preventDefault();
-
-    const rectW = Math.abs(endX - startX);
-    const rectH = Math.abs(endY - startY);
-
-    // Если область выделена больше определённой «минималки» – показываем кнопки
-    if (rectW > 5 && rectH > 5) {
-      removeBtn.style.display = 'block';
-      replaceBtn.style.display = 'block';
-    }
-  }
-
   canvasMask.addEventListener('mousedown', onPointerDown, false);
   canvasMask.addEventListener('mousemove', onPointerMove, false);
   canvasMask.addEventListener('mouseup',   onPointerUp,   false);
-  canvasMask.addEventListener('mouseleave', onPointerUp,   false);
+  canvasMask.addEventListener('mouseleave',onPointerUp,   false);
 
   canvasMask.addEventListener('touchstart', onPointerDown, false);
   canvasMask.addEventListener('touchmove',  onPointerMove, false);
   canvasMask.addEventListener('touchend',   onPointerUp,   false);
   canvasMask.addEventListener('touchcancel',onPointerUp,   false);
 
-  // ——————————————————————————————————————————————————————
-  // Клик «Удалить объект»
-  // ——————————————————————————————————————————————————————
-  removeBtn.addEventListener('click', async () => {
-    // Если нет файла - выходим
-    if (!fileInput.files[0]) return;
+  removeBtn.addEventListener('click', onRemoveObject);
 
-    overlay.classList.add('active');
+  // ---------------------------------------------------------
+  // 4) Логика выделения рамки
+  // ---------------------------------------------------------
+  function getMousePos(canvas, evt) {
+    const rect = canvas.getBoundingClientRect();
+    let cx = evt.clientX, cy = evt.clientY;
+    if (evt.touches && evt.touches.length>0) {
+      cx = evt.touches[0].clientX;
+      cy = evt.touches[0].clientY;
+    }
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height/ rect.height;
+    return {
+      x: (cx - rect.left)*scaleX,
+      y: (cy - rect.top )*scaleY
+    }
+  }
 
-    // ШАГ 1: Берём исходное изображение
+  function onPointerDown(evt) {
+    isDragging = true;
+    const {x, y} = getMousePos(canvasMask, evt);
+    startX = x; startY = y;
+    endX   = x; endY   = y;
+    evt.preventDefault();
+  }
+  function onPointerMove(evt) {
+    if(!isDragging) return;
+    evt.preventDefault();
+    const {x, y} = getMousePos(canvasMask, evt);
+    endX = x; endY = y;
+
+    ctxMask.clearRect(0,0,imgWidth,imgHeight);
+
+    ctxMask.setLineDash([6]);
+    ctxMask.lineWidth   = 30;
+    ctxMask.strokeStyle = 'rgba(211,40,108,0.9)';
+
+    const rx = Math.min(startX, endX);
+    const ry = Math.min(startY, endY);
+    const rw = Math.abs(endX - startX);
+    const rh = Math.abs(endY - startY);
+    ctxMask.strokeRect(rx,ry, rw,rh);
+  }
+  function onPointerUp(evt) {
+    if(!isDragging) return;
+    isDragging = false;
+    evt.preventDefault();
+
+    const rw = Math.abs(endX - startX);
+    const rh = Math.abs(endY - startY);
+    if(rw>5 && rh>5) {
+      removeBtn.style.display = 'block';
+    }
+  }
+
+  // ---------------------------------------------------------
+  // 5) Удалить объект
+  // ---------------------------------------------------------
+  async function onRemoveObject() {
+    if(!fileInput.files[0]) return;
+    overlay.classList.add('active');  // Показать "Обрабатываем..."
+
+    // image_data
     const imageDataURL = canvasImage.toDataURL('image/png');
 
-    // ШАГ 2: Формируем маску: белая внутри прямоугольника, чёрная снаружи
-    ctxMask.clearRect(0, 0, imgWidth, imgHeight);
-
-    const rectX = Math.min(startX, endX);
-    const rectY = Math.min(startY, endY);
-    const rectW = Math.abs(endX - startX);
-    const rectH = Math.abs(endY - startY);
+    // mask_data
+    ctxMask.clearRect(0,0,imgWidth,imgHeight);
+    const rx = Math.min(startX,endX);
+    const ry = Math.min(startY,endY);
+    const rw = Math.abs(endX-startX);
+    const rh = Math.abs(endY-startY);
 
     ctxMask.fillStyle = 'black';
-    ctxMask.fillRect(0, 0, imgWidth, imgHeight);
-
+    ctxMask.fillRect(0,0,imgWidth,imgHeight);
     ctxMask.fillStyle = 'white';
-    ctxMask.fillRect(rectX, rectY, rectW, rectH);
+    ctxMask.fillRect(rx,ry, rw,rh);
 
     const maskDataURL = canvasMask.toDataURL('image/png');
 
     try {
-      // ШАГ 3: Отправляем на сервер
       const formData = new URLSearchParams();
+      formData.append('chat_id',   chatId);       // ключевой момент!
       formData.append('image_data', imageDataURL);
       formData.append('mask_data',  maskDataURL);
 
-      const resp = await fetch('/process_remove', {
+      const resp = await fetch("https://ВАШ_ДОМЕН/process_remove", {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: formData.toString()
       });
 
-      if (!resp.ok) {
-        throw new Error(`Server error: ${resp.status}`);
-      }
-      const blob = await resp.blob();
-
       overlay.classList.remove('active');
+      if(!resp.ok) {
+        alert('Ошибка сервера: ' + resp.status);
+        return;
+      }
+      const json = await resp.json();
+      if(json.error) {
+        alert('Ошибка: ' + json.error);
+        return;
+      }
+      // Предположим, сервер вернёт {"status":"ok"} при успехе
+      alert("Готово! Результат отправлен в Телеграм.");
 
-      // Открываем результат в новой вкладке
-      const url = URL.createObjectURL(blob);
-      window.open(url, '_blank');
     } catch(e) {
       overlay.classList.remove('active');
-      alert('Произошла ошибка при обработке: ' + e.message);
+      alert('Ошибка: ' + e.message);
     }
-  });
-
-  // ——————————————————————————————————————————————————————
-  // Клик «Заменить объект»
-  // ——————————————————————————————————————————————————————
-  replaceBtn.addEventListener('click', () => {
-    // Открываем дополнительный инпут для выбора нового «объекта»
-    replacementInput.click();
-  });
-
-  // При выборе файла для замены
-  replacementInput.addEventListener('change', async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    overlay.classList.add('active');
-
-    // Аналогично: получаем dataURL исходного изображения и маски
-    const originalImageData = canvasImage.toDataURL('image/png');
-    
-    ctxMask.clearRect(0, 0, imgWidth, imgHeight);
-    const rectX = Math.min(startX, endX);
-    const rectY = Math.min(startY, endY);
-    const rectW = Math.abs(endX - startX);
-    const rectH = Math.abs(endY - startY);
-
-    ctxMask.fillStyle = 'black';
-    ctxMask.fillRect(0, 0, imgWidth, imgHeight);
-    ctxMask.fillStyle = 'white';
-    ctxMask.fillRect(rectX, rectY, rectW, rectH);
-
-    const maskData = canvasMask.toDataURL('image/png');
-
-    // Получаем dataURL картинки, которой будем «заменять»
-    const reader = new FileReader();
-    reader.onload = async function(ev) {
-      const replaceDataURL = ev.target.result;
-
-      try {
-        // Отправляем все данные на сервер
-        const formData = new URLSearchParams();
-        formData.append('original_image',  originalImageData);
-        formData.append('mask_image',      maskData);
-        formData.append('replacement_img', replaceDataURL);
-
-        const resp = await fetch('/process_replace', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: formData.toString()
-        });
-        if (!resp.ok) {
-          throw new Error(`Server error: ${resp.status}`);
-        }
-        const blob = await resp.blob();
-
-        overlay.classList.remove('active');
-
-        // Открываем результат
-        const url = URL.createObjectURL(blob);
-        window.open(url, '_blank');
-      } catch(error) {
-        overlay.classList.remove('active');
-        alert('Ошибка при замене объекта: ' + error.message);
-      }
-    };
-    reader.readAsDataURL(file);
-  });
+  }
 </script>
 
 </body>
