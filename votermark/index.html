@@ -403,8 +403,9 @@ removeBtn.addEventListener('click', async () => {
   const maskDataURL = canvasMask.toDataURL('image/png');
 
   try {
+    // ШАГ 3: Отправляем POST-запрос
     const formData = new FormData();
-    formData.append('image_data', imageDataURL);
+    formData.append('image_data', imageDataURL); 
     formData.append('mask_data', maskDataURL);
 
     const resp = await fetch('https://youbot.space/process', {
