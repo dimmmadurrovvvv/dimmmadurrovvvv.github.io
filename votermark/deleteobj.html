@@ -5,10 +5,10 @@
   <title>Удалить объект</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- Google Fonts Inter -->
+
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap');
-  
+
     :root {
       --bg-color: #0A0A16;
       --text-color: #FFFFFF;
@@ -16,7 +16,7 @@
       --border-color: #FFFFFF;
       --font-family: 'Inter', sans-serif;
     }
-  
+
     html, body {
       margin: 0;
       padding: 0;
@@ -28,11 +28,11 @@
       color: var(--text-color);
       -webkit-overflow-scrolling: touch;
     }
-  
+
     *, *::before, *::after {
       box-sizing: border-box;
     }
-  
+
     .container {
       width: 100%;
       max-width: 400px;
@@ -42,14 +42,14 @@
       text-align: center;
       overflow: hidden;
     }
-  
+
     .logo {
       display: block;
       width: 100px;
       height: 100px;
       margin: 40px auto 20px auto;
     }
-  
+
     .upload-box {
       border: 2px dashed var(--border-color);
       border-radius: 15px;
@@ -64,27 +64,27 @@
       max-width: 100%;
       cursor: pointer;
     }
-  
+
     .upload-box-text {
       font-size: 16px;
     }
-  
+
     .upload-icon {
       width: 32px;
       height: 32px;
       fill: var(--text-color);
     }
-  
+
     #fileInput {
       display: none;
     }
-    
-  .fixed-bottom-btn {
+
+    .fixed-bottom-btn {
       position: fixed;
       bottom: 20px;
       left: 50%;
       transform: translateX(-50%);
-      max-width: 280px; /* фиксированная ширина или максимум */
+      max-width: 280px;
       width: auto;
       background-color: var(--accent-color);
       box-shadow: 0 -2px 10px rgba(0,0,0,0.3);
@@ -101,7 +101,6 @@
       cursor: pointer;
     }
 
-  
     .instruction-title {
       display: none;
       margin-top: 35px;
@@ -109,7 +108,7 @@
       font-size: 16px;
       font-weight: 600;
     }
-  
+
     #canvasWrapper {
       display: none;
       opacity: 0;
@@ -118,19 +117,19 @@
       max-width: 100%;
       margin-bottom: 20px;
     }
-  
+
     #canvasImage, #canvasMask {
       display: block;
       width: 100%;
       height: auto;
     }
-  
+
     #canvasMask {
       position: absolute;
       left: 0;
       top: 0;
     }
-  
+
     .action-btn {
       display: none;
       background-color: var(--accent-color);
@@ -144,15 +143,15 @@
       margin-bottom: 15px;
       width: 100%;
     }
-  
+
     .action-btn:hover {
       opacity: 0.9;
     }
-  
+
     .fade-in {
       animation: fadeIn 0.4s ease forwards;
     }
-  
+
     @keyframes fadeIn {
       0% {
         opacity: 0;
@@ -161,7 +160,7 @@
         opacity: 1;
       }
     }
-  
+
     .overlay {
       position: fixed;
       top: 0;
@@ -175,17 +174,17 @@
       z-index: 9999;
       visibility: hidden;
     }
-  
+
     .overlay.active {
       visibility: visible;
     }
-  
+
     .overlay-content {
       display: flex;
       flex-direction: column;
       align-items: center;
     }
-  
+
     .spinner {
       width: 60px;
       height: 60px;
@@ -195,12 +194,12 @@
       animation: spin 1s linear infinite;
       background: transparent;
     }
-  
+
     @keyframes spin {
       0%   { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
     }
-  
+
     .overlay-text {
       color: #fff;
       margin-top: 15px;
@@ -208,13 +207,14 @@
       font-family: var(--font-family);
     }
   </style>
-  
 </head>
 <body>
 
 <div class="container">
+ 
   <img class="logo" src="./logo.svg" alt="Logo">
 
+  
   <div class="upload-box" id="uploadBox">
     <svg class="upload-icon" viewBox="0 0 24 24">
       <path d="M12 3v12m0 0l-4-4m4 4 4-4M4 17h16"
@@ -224,21 +224,22 @@
     <input type="file" id="fileInput" accept="image/*">
   </div>
 
+
   <h2 class="instruction-title" id="instructionTitle">
     Обведите объект, который нужно удалить
   </h2>
+
 
   <div id="canvasWrapper">
     <canvas id="canvasImage"></canvas>
     <canvas id="canvasMask"></canvas>
   </div>
 
-  <!-- Одна кнопка удаления -->
-  <button id="removeBtn" class="action-btn fixed-bottom-btn">Удалить объект</button>
 
+  <button id="removeBtn" class="action-btn fixed-bottom-btn">Удалить объект</button>
 </div>
 
-<!-- Оверлей -->
+
 <div class="overlay" id="loadingOverlay">
   <div class="overlay-content">
     <div class="spinner"></div>
@@ -247,186 +248,255 @@
 </div>
 
 <script>
-  const urlParams = new URLSearchParams(window.location.search);
-  const chatId = urlParams.get("chat_id"); 
+
+  class ObjectRemover {
+    constructor() {
+      
+      this.uploadBox = document.getElementById('uploadBox');
+      this.fileInput = document.getElementById('fileInput');
+      this.canvasImage = document.getElementById('canvasImage');
+      this.canvasMask = document.getElementById('canvasMask');
+      this.canvasWrapper = document.getElementById('canvasWrapper');
+      this.removeBtn = document.getElementById('removeBtn');
+      this.loadingOverlay = document.getElementById('loadingOverlay');
+      this.instructionTitle = document.getElementById('instructionTitle');
+
+     
+      this.ctxImage = this.canvasImage.getContext('2d');
+      this.ctxMask = this.canvasMask.getContext('2d');
+
+      
+      this.imgWidth = 0;
+      this.imgHeight = 0;
+
+      
+      this.startX = 0;
+      this.startY = 0;
+      this.endX = 0;
+      this.endY = 0;
+      this.isDragging = false;
+
+     
+      const urlParams = new URLSearchParams(window.location.search);
+      this.chatId = urlParams.get('chat_id');
+
+      
+      this.init();
+    }
+
+    init() {
+     
+      this.uploadBox.addEventListener('click', () => this.fileInput.click());
+      this.fileInput.addEventListener('change', (event) => this.handleFileChange(event));
+      
+      // Для рисования маски
+      this.canvasMask.addEventListener('mousedown', (evt) => this.onPointerDown(evt));
+      this.canvasMask.addEventListener('mousemove', (evt) => this.onPointerMove(evt));
+      this.canvasMask.addEventListener('mouseup',   (evt) => this.onPointerUp(evt));
+      this.canvasMask.addEventListener('mouseleave',(evt) => this.onPointerUp(evt));
+      
+      // Тач-события
+      this.canvasMask.addEventListener('touchstart', (evt) => this.onPointerDown(evt));
+      this.canvasMask.addEventListener('touchmove',  (evt) => this.onPointerMove(evt));
+      this.canvasMask.addEventListener('touchend',   (evt) => this.onPointerUp(evt));
+      this.canvasMask.addEventListener('touchcancel',(evt) => this.onPointerUp(evt));
+
+      this.removeBtn.addEventListener('click', () => this.removeObject());
+    }
 
 
-  const uploadBox    = document.getElementById('uploadBox');
-  const fileInput    = document.getElementById('fileInput');
-  const canvasImage  = document.getElementById('canvasImage');
-  const canvasMask   = document.getElementById('canvasMask');
-  const canvasWrap   = document.getElementById('canvasWrapper');
-  const removeBtn    = document.getElementById('removeBtn');
-  const overlay      = document.getElementById('loadingOverlay');
-  const instructionTitle = document.getElementById('instructionTitle');
+    handleFileChange(event) {
+      const file = event.target.files[0];
+      if (!file) return;
 
-  const ctxImage = canvasImage.getContext('2d');
-  const ctxMask  = canvasMask.getContext('2d');
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const img = new Image();
+        img.onload = () => {
+          this.imgWidth = img.width;
+          this.imgHeight = img.height;
 
-  let imgWidth  = 0;
-  let imgHeight = 0;
+        
+          this.canvasImage.width = this.imgWidth;
+          this.canvasImage.height = this.imgHeight;
+          this.canvasMask.width = this.imgWidth;
+          this.canvasMask.height = this.imgHeight;
 
-  let startX=0, startY=0;
-  let endX=0, endY=0;
-  let isDragging = false;
+         
+          this.canvasImage.style.width = '100%';
+          this.canvasImage.style.height = 'auto';
+          this.canvasMask.style.width = '100%';
+          this.canvasMask.style.height = 'auto';
 
-  uploadBox.addEventListener('click', () => fileInput.click());
+       
+          this.canvasWrapper.style.display = 'block';
+          this.canvasWrapper.classList.add('fade-in');
 
-  fileInput.addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+          
+          this.instructionTitle.style.display = 'block';
+          this.instructionTitle.classList.add('fade-in');
 
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const img = new Image();
-      img.onload = () => {
-        imgWidth  = img.width;
-        imgHeight = img.height;
+        
+          this.removeBtn.style.display = 'none';
 
-        canvasImage.width  = imgWidth;
-        canvasImage.height = imgHeight;
-        canvasMask.width   = imgWidth;
-        canvasMask.height  = imgHeight;
+         
+          this.ctxImage.clearRect(0, 0, this.imgWidth, this.imgHeight);
+          this.ctxImage.drawImage(img, 0, 0);
+          this.ctxMask.clearRect(0, 0, this.imgWidth, this.imgHeight);
+        };
+        img.src = ev.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
 
-        canvasImage.style.width  = '100%';
-        canvasImage.style.height = 'auto';
-        canvasMask.style.width   = '100%';
-        canvasMask.style.height  = 'auto';
 
-        canvasWrap.style.display = 'block';
-        canvasWrap.classList.add('fade-in');
+    getPointerPosition(canvas, evt) {
+      const rect = canvas.getBoundingClientRect();
 
-        instructionTitle.style.display = 'block';
-        instructionTitle.classList.add('fade-in');
+      let clientX = evt.clientX;
+      let clientY = evt.clientY;
 
-        removeBtn.style.display = 'none';
-
-        ctxImage.clearRect(0,0,imgWidth,imgHeight);
-        ctxImage.drawImage(img,0,0);
-        ctxMask.clearRect(0,0,imgWidth,imgHeight);
+     
+      if (evt.touches && evt.touches.length > 0) {
+        clientX = evt.touches[0].clientX;
+        clientY = evt.touches[0].clientY;
       }
-      img.src = ev.target.result;
+
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+
+      return {
+        x: (clientX - rect.left) * scaleX,
+        y: (clientY - rect.top)  * scaleY
+      };
     }
-    reader.readAsDataURL(file);
-  });
-
-  canvasMask.addEventListener('mousedown', onPointerDown, false);
-  canvasMask.addEventListener('mousemove', onPointerMove, false);
-  canvasMask.addEventListener('mouseup',   onPointerUp,   false);
-  canvasMask.addEventListener('mouseleave',onPointerUp,   false);
-
-  canvasMask.addEventListener('touchstart', onPointerDown, false);
-  canvasMask.addEventListener('touchmove',  onPointerMove, false);
-  canvasMask.addEventListener('touchend',   onPointerUp,   false);
-  canvasMask.addEventListener('touchcancel',onPointerUp,   false);
-
-  removeBtn.addEventListener('click', onRemoveObject);
 
 
-  function getMousePos(canvas, evt) {
-    const rect = canvas.getBoundingClientRect();
-    let cx = evt.clientX, cy = evt.clientY;
-    if (evt.touches && evt.touches.length>0) {
-      cx = evt.touches[0].clientX;
-      cy = evt.touches[0].clientY;
+    onPointerDown(evt) {
+      this.isDragging = true;
+      const { x, y } = this.getPointerPosition(this.canvasMask, evt);
+      this.startX = x;
+      this.startY = y;
+      this.endX = x;
+      this.endY = y;
+      evt.preventDefault();
     }
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height/ rect.height;
-    return {
-      x: (cx - rect.left)*scaleX,
-      y: (cy - rect.top )*scaleY
+
+
+    onPointerMove(evt) {
+      if (!this.isDragging) return;
+      evt.preventDefault();
+
+      const { x, y } = this.getPointerPosition(this.canvasMask, evt);
+      this.endX = x;
+      this.endY = y;
+
+     
+      this.ctxMask.clearRect(0, 0, this.imgWidth, this.imgHeight);
+      this.ctxMask.setLineDash([6]);
+      this.ctxMask.lineWidth = 30;
+      this.ctxMask.strokeStyle = 'rgba(211,40,108,0.9)';
+
+      const rectX = Math.min(this.startX, this.endX);
+      const rectY = Math.min(this.startY, this.endY);
+      const rectW = Math.abs(this.endX - this.startX);
+      const rectH = Math.abs(this.endY - this.startY);
+
+      this.ctxMask.strokeRect(rectX, rectY, rectW, rectH);
     }
-  }
 
-  function onPointerDown(evt) {
-    isDragging = true;
-    const {x, y} = getMousePos(canvasMask, evt);
-    startX = x; startY = y;
-    endX   = x; endY   = y;
-    evt.preventDefault();
-  }
-  function onPointerMove(evt) {
-    if(!isDragging) return;
-    evt.preventDefault();
-    const {x, y} = getMousePos(canvasMask, evt);
-    endX = x; endY = y;
 
-    ctxMask.clearRect(0,0,imgWidth,imgHeight);
+    onPointerUp(evt) {
+      if (!this.isDragging) return;
+      this.isDragging = false;
+      evt.preventDefault();
 
-    ctxMask.setLineDash([6]);
-    ctxMask.lineWidth   = 30;
-    ctxMask.strokeStyle = 'rgba(211,40,108,0.9)';
+      const rectW = Math.abs(this.endX - this.startX);
+      const rectH = Math.abs(this.endY - this.startY);
 
-    const rx = Math.min(startX, endX);
-    const ry = Math.min(startY, endY);
-    const rw = Math.abs(endX - startX);
-    const rh = Math.abs(endY - startY);
-    ctxMask.strokeRect(rx,ry, rw,rh);
-  }
-  function onPointerUp(evt) {
-    if(!isDragging) return;
-    isDragging = false;
-    evt.preventDefault();
-
-    const rw = Math.abs(endX - startX);
-    const rh = Math.abs(endY - startY);
-    if(rw>5 && rh>5) {
-      removeBtn.style.display = 'block';
+   
+      if (rectW > 5 && rectH > 5) {
+        this.removeBtn.style.display = 'block';
+      }
     }
-  }
 
 
-  async function onRemoveObject() {
-    if(!fileInput.files[0]) return;
-    overlay.classList.add('active');  
+    showLoadingOverlay() {
+      this.loadingOverlay.classList.add('active');
+    }
 
-    // image_data
-    const imageDataURL = canvasImage.toDataURL('image/png');
+ 
+    hideLoadingOverlay() {
+      this.loadingOverlay.classList.remove('active');
+    }
 
-    // mask_data
-    ctxMask.clearRect(0,0,imgWidth,imgHeight);
-    const rx = Math.min(startX,endX);
-    const ry = Math.min(startY,endY);
-    const rw = Math.abs(endX-startX);
-    const rh = Math.abs(endY-startY);
 
-    ctxMask.fillStyle = 'black';
-    ctxMask.fillRect(0,0,imgWidth,imgHeight);
-    ctxMask.fillStyle = 'white';
-    ctxMask.fillRect(rx,ry, rw,rh);
+    async removeObject() {
+      
+      if (!this.fileInput.files[0]) return;
 
-    const maskDataURL = canvasMask.toDataURL('image/png');
+      
+      this.showLoadingOverlay();
 
-    try {
+      
+      this.ctxMask.clearRect(0, 0, this.imgWidth, this.imgHeight);
+
+      const rectX = Math.min(this.startX, this.endX);
+      const rectY = Math.min(this.startY, this.endY);
+      const rectW = Math.abs(this.endX - this.startX);
+      const rectH = Math.abs(this.endY - this.startY);
+
+     
+      this.ctxMask.fillStyle = 'black';
+      this.ctxMask.fillRect(0, 0, this.imgWidth, this.imgHeight);
+
+      this.ctxMask.fillStyle = 'white';
+      this.ctxMask.fillRect(rectX, rectY, rectW, rectH);
+
+      const maskDataURL = this.canvasMask.toDataURL('image/png');
       const formData = new FormData();
-        formData.append('chat_id', chatId);
-        formData.append('image_file', fileInput.files[0]);
-        formData.append('mask_data', maskDataURL);
 
-        // И отправляете:
-        const resp = await fetch("https://youbot.space/process_remove", {
+     
+      formData.append('chat_id', this.chatId || '');
+      formData.append('image_file', this.fileInput.files[0]);
+      formData.append('mask_data', maskDataURL);
+
+      try {
+        
+        const response = await fetch('https://youbot.space/process_remove', {
           method: 'POST',
-          body: formData
+          body: formData,
         });
 
-      overlay.classList.remove('active');
-      if(!resp.ok) {
-        alert('Ошибка сервера: ' + resp.status);
-        return;
-      }
-      const json = await resp.json();
-      if(json.error) {
-        alert('Ошибка: ' + json.error);
-        return;
-      }
-    
-      alert("Готово! Результат отправлен в Телеграм.");
+       
+        this.hideLoadingOverlay();
 
-    } catch(e) {
-      overlay.classList.remove('active');
-      alert('Ошибка: ' + e.message);
+        
+        if (!response.ok) {
+          alert('Ошибка сервера: ' + response.status);
+          return;
+        }
+
+        const result = await response.json();
+        if (result.error) {
+          alert('Ошибка: ' + result.error);
+          return;
+        }
+
+        
+        alert('Готово! Результат отправлен в Телеграм.');
+      } catch (error) {
+       
+        this.hideLoadingOverlay();
+        alert('Ошибка: ' + error.message);
+      }
     }
   }
+
+
+  document.addEventListener('DOMContentLoaded', () => {
+    new ObjectRemover();
+  });
 </script>
 
 </body>
