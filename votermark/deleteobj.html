@@ -247,16 +247,10 @@
 </div>
 
 <script>
-  // ---------------------------------------------------------
-  // 1) Считываем chat_id из URL
-  // ---------------------------------------------------------
   const urlParams = new URLSearchParams(window.location.search);
   const chatId = urlParams.get("chat_id"); 
-  // Например, если URL = https://example.com/index.html?chat_id=12345
 
-  // ---------------------------------------------------------
-  // 2) DOM-элементы
-  // ---------------------------------------------------------
+
   const uploadBox    = document.getElementById('uploadBox');
   const fileInput    = document.getElementById('fileInput');
   const canvasImage  = document.getElementById('canvasImage');
@@ -276,9 +270,6 @@
   let endX=0, endY=0;
   let isDragging = false;
 
-  // ---------------------------------------------------------
-  // 3) События
-  // ---------------------------------------------------------
   uploadBox.addEventListener('click', () => fileInput.click());
 
   fileInput.addEventListener('change', (e) => {
@@ -331,9 +322,7 @@
 
   removeBtn.addEventListener('click', onRemoveObject);
 
-  // ---------------------------------------------------------
-  // 4) Логика выделения рамки
-  // ---------------------------------------------------------
+
   function getMousePos(canvas, evt) {
     const rect = canvas.getBoundingClientRect();
     let cx = evt.clientX, cy = evt.clientY;
@@ -386,12 +375,10 @@
     }
   }
 
-  // ---------------------------------------------------------
-  // 5) Удалить объект
-  // ---------------------------------------------------------
+
   async function onRemoveObject() {
     if(!fileInput.files[0]) return;
-    overlay.classList.add('active');  // Показать "Обрабатываем..."
+    overlay.classList.add('active');  
 
     // image_data
     const imageDataURL = canvasImage.toDataURL('image/png');
@@ -413,8 +400,8 @@
     try {
       const formData = new FormData();
         formData.append('chat_id', chatId);
-        formData.append('image_file', fileInput.files[0]);  // Имея исходный File
-        formData.append('mask_data', maskDataURL); // Можно оставить base64 для маски, т.к. она маленькая.
+        formData.append('image_file', fileInput.files[0]);
+        formData.append('mask_data', maskDataURL);
 
         // И отправляете:
         const resp = await fetch("https://youbot.space/process_remove", {
@@ -432,7 +419,7 @@
         alert('Ошибка: ' + json.error);
         return;
       }
-      // Предположим, сервер вернёт {"status":"ok"} при успехе
+    
       alert("Готово! Результат отправлен в Телеграм.");
 
     } catch(e) {
